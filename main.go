@@ -1,7 +1,7 @@
 package main
 
-import "fmt"
+import "github.com/vimcoders/go-gateway/app"
 
 func main() {
-	fmt.Println("vim-go")
+	app.Run()
 }
