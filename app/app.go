@@ -35,10 +35,11 @@ func Listen(waitGroup *sync.WaitGroup) (err error) {
 		conn, err := listener.Accept()
 
 		if err != nil {
+			logger.Error("Listen %v", err.Error())
 			continue
 		}
 
-		NewSession(context.Background(), conn)
+		Handle(context.Background(), conn)
 	}
 }
 
