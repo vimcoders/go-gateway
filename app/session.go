@@ -63,36 +63,39 @@ func NewDecoder(b []byte) driver.Message {
 	return &Decoder{b}
 }
 
-type Conn struct {
+type Session struct {
+	id int64
+	v map[interface{}]interface{}
+
 	net.Conn
 	OnMessage        func(pkg driver.Message) (err error)
 	OnClose          func(e interface{})
 	PushMessageQuene chan driver.Message
 }
 
-func (c *Conn) Write(pkg driver.Message) (err error) {
+func (s *Session) Write(pkg driver.Message) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
-			c.OnClose(e)
+			s.OnClose(e)
 			return
 		}
 	}()
 
-	c.PushMessageQuene <- pkg
+	s.PushMessageQuene <- pkg
 
 	return nil
 }
 
-func (c *Conn) Push(ctx context.Context) (err error) {
+func (c *Session) Push(ctx context.Context) (err error) {
 	defer func() {
 		close(c.PushMessageQuene)
 
 		if e := recover(); e != nil {
-			c.OnClose(e)
+			s.OnClose(e)
 			return
 		}
 
-		c.OnClose(err)
+		s.OnClose(err)
 	}()
 
 	buffer := NewBuffer()
@@ -132,20 +135,20 @@ func (c *Conn) Push(ctx context.Context) (err error) {
 			return err
 		}
 
-		if _, err := c.Conn.Write(buf); err != nil {
+		if _, err := s.Conn.Write(buf); err != nil {
 			return err
 		}
 	}
 }
 
-func (c *Conn) Pull(ctx context.Context) (err error) {
+func (s *Session) Pull(ctx context.Context) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
-			c.OnClose(e)
+			s.OnClose(e)
 			return
 		}
 
-		c.OnClose(err)
+		s.OnClose(err)
 	}()
 
 	reader := bufio.NewReaderSize(c.Conn, DefaultBufferSize)
@@ -175,7 +178,7 @@ func (c *Conn) Pull(ctx context.Context) (err error) {
 			return err
 		}
 
-		if err := c.OnMessage(NewDecoder(buf[len(header):])); err != nil {
+		if err := s.OnMessage(NewDecoder(buf[len(header):])); err != nil {
 			return err
 		}
 
@@ -183,12 +186,6 @@ func (c *Conn) Pull(ctx context.Context) (err error) {
 			return err
 		}
 	}
-}
-
-type Session struct {
-	id int64
-	driver.Writer
-	v map[interface{}]interface{}
 }
 
 func (s *Session) SessionID() int64 {
@@ -215,11 +212,9 @@ func (s *Session) Close() error {
 
 func Handle(ctx context.Context, c net.Conn) driver.Session {
 	s := Session{
-		v: make(map[interface{}]interface{}),
-	}
-
-	conn := &Conn{
 		Conn: c,
+		v: make(map[interface{}]interface{}),
+
 		OnMessage: func(pkg driver.Message) (err error) {
 			return nil
 		},
@@ -239,10 +234,8 @@ func Handle(ctx context.Context, c net.Conn) driver.Session {
 		PushMessageQuene: make(chan driver.Message),
 	}
 
-	go conn.Pull(ctx)
-	go conn.Push(ctx)
-
-	s.Writer = conn
+	go s.Pull(ctx)
+	go s.Push(ctx)
 
 	return &s
 }
