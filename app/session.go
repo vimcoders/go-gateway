@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"net"
+	"runtime/debug"
 	"time"
 
 	"github.com/vimcoders/go-driver"
@@ -65,20 +66,25 @@ func NewDecoder(b []byte) driver.Message {
 }
 
 type Session struct {
-	id int64
-	v  map[interface{}]interface{}
-
 	net.Conn
-	OnMessage        func(pkg driver.Message) (err error)
-	OnClose          func(e interface{})
+	id               int64
+	v                map[interface{}]interface{}
 	PushMessageQuene chan driver.Message
+}
+
+func (s *Session) OnMessage(pkg driver.Message) (err error) {
+	return nil
 }
 
 func (s *Session) Write(pkg driver.Message) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
-			s.OnClose(e)
+			logger.Error("write recoder %v debug %v", e, string(debug.Stack()))
 			return
+		}
+
+		if err != nil {
+			logger.Error("write err %v", err)
 		}
 	}()
 
@@ -92,11 +98,13 @@ func (s *Session) Push(ctx context.Context) (err error) {
 		close(s.PushMessageQuene)
 
 		if e := recover(); e != nil {
-			s.OnClose(e)
+			logger.Error("push recoder %v debug %v", e, string(debug.Stack()))
 			return
 		}
 
-		s.OnClose(err)
+		if err != nil {
+			logger.Error("push err %v", err)
+		}
 	}()
 
 	buffer := NewBuffer()
@@ -145,11 +153,13 @@ func (s *Session) Push(ctx context.Context) (err error) {
 func (s *Session) Pull(ctx context.Context) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
-			s.OnClose(e)
+			logger.Error("pull recoder %v debug %v", e, string(debug.Stack()))
 			return
 		}
 
-		s.OnClose(err)
+		if err != nil {
+			logger.Error("pull err %v", err)
+		}
 	}()
 
 	reader := bufio.NewReaderSize(s.Conn, DefaultBufferSize)
@@ -216,19 +226,6 @@ func Handle(ctx context.Context, c net.Conn) driver.Session {
 		Conn:             c,
 		v:                make(map[interface{}]interface{}),
 		PushMessageQuene: make(chan driver.Message),
-
-		OnMessage: func(pkg driver.Message) (err error) {
-			return nil
-		},
-		OnClose: func(e interface{}) {
-			if e != nil {
-				logger.Error("OnClose %v", e)
-			}
-
-			if err := c.Close(); err != nil {
-				logger.Error("session err %v", err.Error())
-			}
-		},
 	}
 
 	go s.Pull(ctx)
