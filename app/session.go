@@ -66,7 +66,7 @@ func NewDecoder(b []byte) driver.Message {
 
 type Session struct {
 	id int64
-	v map[interface{}]interface{}
+	v  map[interface{}]interface{}
 
 	net.Conn
 	OnMessage        func(pkg driver.Message) (err error)
@@ -87,9 +87,9 @@ func (s *Session) Write(pkg driver.Message) (err error) {
 	return nil
 }
 
-func (c *Session) Push(ctx context.Context) (err error) {
+func (s *Session) Push(ctx context.Context) (err error) {
 	defer func() {
-		close(c.PushMessageQuene)
+		close(s.PushMessageQuene)
 
 		if e := recover(); e != nil {
 			s.OnClose(e)
@@ -108,7 +108,7 @@ func (c *Session) Push(ctx context.Context) (err error) {
 		default:
 		}
 
-		pkg, ok := <-c.PushMessageQuene
+		pkg, ok := <-s.PushMessageQuene
 
 		if !ok {
 			return errors.New("shutdown")
@@ -132,7 +132,7 @@ func (c *Session) Push(ctx context.Context) (err error) {
 		copy(buf, header)
 		copy(buf[len(header):], b)
 
-		if err := c.SetWriteDeadline(time.Now().Add(time.Second * 5)); err != nil {
+		if err := s.SetWriteDeadline(time.Now().Add(time.Second * 5)); err != nil {
 			return err
 		}
 
@@ -152,7 +152,7 @@ func (s *Session) Pull(ctx context.Context) (err error) {
 		s.OnClose(err)
 	}()
 
-	reader := bufio.NewReaderSize(c.Conn, DefaultBufferSize)
+	reader := bufio.NewReaderSize(s.Conn, DefaultBufferSize)
 
 	for {
 		select {
@@ -213,8 +213,8 @@ func (s *Session) Close() error {
 
 func Handle(ctx context.Context, c net.Conn) driver.Session {
 	s := Session{
-		Conn: c,
-		v: make(map[interface{}]interface{}),
+		Conn:             c,
+		v:                make(map[interface{}]interface{}),
 		PushMessageQuene: make(chan driver.Message),
 
 		OnMessage: func(pkg driver.Message) (err error) {
@@ -226,10 +226,6 @@ func Handle(ctx context.Context, c net.Conn) driver.Session {
 			}
 
 			if err := c.Close(); err != nil {
-				logger.Error("session err %v", err.Error())
-			}
-
-			if err := s.Close(); err != nil {
 				logger.Error("session err %v", err.Error())
 			}
 		},
