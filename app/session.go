@@ -80,7 +80,6 @@ func (s *Session) Write(pkg driver.Message) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			logger.Error("write recoder %v debug %v", e, string(debug.Stack()))
-			return
 		}
 
 		if err != nil {
@@ -95,16 +94,15 @@ func (s *Session) Write(pkg driver.Message) (err error) {
 
 func (s *Session) Push(ctx context.Context) (err error) {
 	defer func() {
-		close(s.PushMessageQuene)
-
 		if e := recover(); e != nil {
 			logger.Error("push recoder %v debug %v", e, string(debug.Stack()))
-			return
 		}
 
 		if err != nil {
 			logger.Error("push err %v", err)
 		}
+
+		s.Close()
 	}()
 
 	buffer := NewBuffer()
@@ -154,7 +152,6 @@ func (s *Session) Pull(ctx context.Context) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			logger.Error("pull recoder %v debug %v", e, string(debug.Stack()))
-			return
 		}
 
 		if err != nil {
@@ -217,8 +214,19 @@ func (s *Session) Delete(key interface{}) error {
 	return nil
 }
 
-func (s *Session) Close() error {
-	return nil
+func (s *Session) Close() (err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			logger.Error("session close %v debug %v", e, string(debug.Stack()))
+		}
+
+		if err != nil {
+			logger.Error("session close %v", err)
+		}
+	}()
+
+	close(s.PushMessageQuene)
+	return s.Conn.Close()
 }
 
 func Handle(ctx context.Context, c net.Conn) driver.Session {
