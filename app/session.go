@@ -60,6 +60,7 @@ func (d *Decoder) ToBytes() (b []byte, err error) {
 }
 
 func NewDecoder(b []byte) driver.Message {
+	//TODO::Decode
 	return &Decoder{b}
 }
 
@@ -214,6 +215,7 @@ func Handle(ctx context.Context, c net.Conn) driver.Session {
 	s := Session{
 		Conn: c,
 		v: make(map[interface{}]interface{}),
+		PushMessageQuene: make(chan driver.Message),
 
 		OnMessage: func(pkg driver.Message) (err error) {
 			return nil
@@ -231,7 +233,6 @@ func Handle(ctx context.Context, c net.Conn) driver.Session {
 				logger.Error("session err %v", err.Error())
 			}
 		},
-		PushMessageQuene: make(chan driver.Message),
 	}
 
 	go s.Pull(ctx)
