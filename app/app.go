@@ -8,9 +8,11 @@ import (
 
 	"github.com/vimcoders/go-driver"
 	"github.com/vimcoders/go-lib"
+	"github.com/vimcoders/pb"
 )
 
 var logger driver.Logger
+var grpc pb.LogicClient
 
 func Listen(waitGroup *sync.WaitGroup) (err error) {
 	defer func() {
