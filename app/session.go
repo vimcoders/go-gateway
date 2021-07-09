@@ -3,7 +3,12 @@ package app
 import (
 	"bufio"
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
+	"math"
 	"net"
 	"runtime/debug"
 	"time"
@@ -70,6 +75,7 @@ type Session struct {
 	id               int64
 	v                map[interface{}]interface{}
 	PushMessageQuene chan driver.Message
+	*rsa.PrivateKey
 }
 
 func (s *Session) OnMessage(pkg driver.Message) (err error) {
@@ -186,7 +192,9 @@ func (s *Session) Pull(ctx context.Context) (err error) {
 			return err
 		}
 
-		if err := s.OnMessage(NewDecoder(buf[len(header):])); err != nil {
+		pkg := NewDecoder(buf[len(header):])
+
+		if err := s.OnMessage(pkg); err != nil {
 			return err
 		}
 
@@ -230,14 +238,35 @@ func (s *Session) Close() (err error) {
 }
 
 func Handle(ctx context.Context, c net.Conn) driver.Session {
+	bits := int(math.Floor(math.Round(math.MaxInt32)))
+	key, err := rsa.GenerateKey(rand.Reader, bits)
+
+	if err != nil {
+		logger.Error("Handle %v", err)
+		return nil
+	}
+
+	bytes, err := x509.MarshalPKIXPublicKey(&key.PublicKey)
+
+	if err != nil {
+		logger.Error("Handle %v", err)
+		return
+	}
+
+	block := pem.Block{Type: "RSA Public Key", Bytes: bytes}
+
 	s := Session{
 		Conn:             c,
 		v:                make(map[interface{}]interface{}),
 		PushMessageQuene: make(chan driver.Message),
+		PrivateKey:       key,
 	}
 
 	go s.Pull(ctx)
 	go s.Push(ctx)
+
+	handshakePkg = NewDecoder(pem.EncodeToMemory(&block))
+	s.Write(handshakePkg)
 
 	return &s
 }
