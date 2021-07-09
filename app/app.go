@@ -3,18 +3,17 @@ package app
 import (
 	"context"
 	"net"
-	"net/http"
 	"sync"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/vimcoders/go-driver"
 	"github.com/vimcoders/go-lib"
-	"github.com/vimcoders/pb"
+	_ "github.com/vimcoders/sqlx-go-driver"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 var logger driver.Logger
-var grpc pb.LogicClient
 
 func Listen(waitGroup *sync.WaitGroup) (err error) {
 	defer func() {
@@ -47,23 +46,22 @@ func Listen(waitGroup *sync.WaitGroup) (err error) {
 	}
 }
 
-
-func Monitor(waitGroup *sync.WaitGroup) (err error) {
-	defer func() {
-		if e := recover(); e != nil {
-			logger.Error("Listen %v", e)
-		}
-
-		if err != nil {
-			logger.Error("Listen %v", err)
-		}
-
-		waitGroup.Done()
-	}()
-
-	http.Handle("/metrics", promhttp.Handler())
-	return	http.ListenAndServe(":2112", nil)
-}
+//func Monitor(waitGroup *sync.WaitGroup) (err error) {
+//	defer func() {
+//		if e := recover(); e != nil {
+//			logger.Error("Listen %v", e)
+//		}
+//
+//		if err != nil {
+//			logger.Error("Listen %v", err)
+//		}
+//
+//		waitGroup.Done()
+//	}()
+//
+//	http.Handle("/metrics", promhttp.Handler())
+//	return http.ListenAndServe(":2112", nil)
+//}
 
 func Run() {
 	now := time.Now()
@@ -76,13 +74,29 @@ func Run() {
 
 	logger = sysLogger
 
+	//sqlConnector, err := sqlx.Connect(&sqlx.Config{})
+
+	//if err != nil {
+	//	panic(err)
+	//}
+
+	//connector = sqlConnector
+
+	//mongoCli, err := mongox.Connect(&mongox.Config{Addr: "mongodb://127.0.0.1:27017"})
+
+	//if err != nil {
+	//	panic(err)
+	//}
+
+	//connector = mongoCli
+
 	var waitGroup sync.WaitGroup
 
-	waitGroup.Add(2)
+	waitGroup.Add(1)
 
 	go Listen(&waitGroup)
 
-	go Monitor(&waitGroup)
+	//go Monitor(&waitGroup)
 
 	logger.Info("Run Cost %v", time.Now().Sub(now))
 

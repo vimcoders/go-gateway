@@ -3,6 +3,10 @@ package app
 import (
 	"bufio"
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"net"
 	"runtime/debug"
@@ -186,7 +190,9 @@ func (s *Session) Pull(ctx context.Context) (err error) {
 			return err
 		}
 
-		if err := s.OnMessage(NewDecoder(buf[len(header):])); err != nil {
+		decoder := NewDecoder(buf[len(header):])
+
+		if err := s.OnMessage(decoder); err != nil {
 			return err
 		}
 
@@ -230,6 +236,23 @@ func (s *Session) Close() (err error) {
 }
 
 func Handle(ctx context.Context, c net.Conn) driver.Session {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 64)
+
+	if err != nil {
+		return nil
+	}
+
+	b, err := x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
+
+	if err != nil {
+		return nil
+	}
+
+	block := &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: b,
+	}
+
 	s := Session{
 		Conn:             c,
 		v:                make(map[interface{}]interface{}),
@@ -238,6 +261,8 @@ func Handle(ctx context.Context, c net.Conn) driver.Session {
 
 	go s.Pull(ctx)
 	go s.Push(ctx)
+
+	s.Write(NewDecoder(pem.EncodeToMemory(block)))
 
 	return &s
 }
