@@ -1,6 +1,5 @@
 github.com/go-sql-driver/mysql v1.6.0 h1:BCTh4TKNUYmOmMUcQ3IipzF5prigylS7XXjEkfCHuOE=
 github.com/go-sql-driver/mysql v1.6.0/go.mod h1:DCzpHaOWr8IXmIStZouvnhqoel9Qv2LBy8hT2VhHyBg=
-github.com/golang/protobuf v1.5.0 h1:LUVKkCeviFUMKqHa4tXIIij/lbhnMbP7Fn5wKdKkRh4=
 github.com/golang/protobuf v1.5.0/go.mod h1:FsONVRAS9T7sI+LIUmWTfcYkHO4aIWwzhcaSAoJOfIk=
 github.com/google/go-cmp v0.5.5 h1:Khx7svrCpmxxtHBq5j2mp/xVjsi8hQMfNLvJFAlrGgU=
 github.com/google/go-cmp v0.5.5/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
@@ -8,8 +7,6 @@ github.com/vimcoders/go-driver v0.0.0-20210704144625-83508d9610b4 h1:2Sqxl30ksjq
 github.com/vimcoders/go-driver v0.0.0-20210704144625-83508d9610b4/go.mod h1:CDhsZTQG/Y4gNhJsPx1ZZL2qf6l9KJsAA4jseJycP1w=
 github.com/vimcoders/go-lib v0.0.0-20210417052910-33fdb6b9d9ae h1:tYBcLYGwdX1Pjo9tNa0OcXYSLha1ux6YqqBs8rj/U54=
 github.com/vimcoders/go-lib v0.0.0-20210417052910-33fdb6b9d9ae/go.mod h1:e7etvtC9UddLyyymWCIQiBku1UI5fcxe3x/QK3cxBYE=
-github.com/vimcoders/sqlx-go-driver v0.0.0-20210703042715-d49ce7af3607 h1:xx8TL/ex3/WEPa/h5ov6X1U08yYYjBn5XVTTpvOyOMA=
-github.com/vimcoders/sqlx-go-driver v0.0.0-20210703042715-d49ce7af3607/go.mod h1:WOhaF+7ud2Hotrp8BH8h+USNhkjVqqtIPsEAyWjbGl4=
 github.com/vimcoders/sqlx-go-driver v0.0.0-20210709144116-c76b2895a6f2 h1:uIZxIB8tXiBmg15yZZ9kFtfm//D0M5/4/6l6sS9eOh8=
 github.com/vimcoders/sqlx-go-driver v0.0.0-20210709144116-c76b2895a6f2/go.mod h1:WOhaF+7ud2Hotrp8BH8h+USNhkjVqqtIPsEAyWjbGl4=
 golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=

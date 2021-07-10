@@ -73,6 +73,7 @@ type Session struct {
 	id               int64
 	v                map[interface{}]interface{}
 	PushMessageQuene chan driver.Message
+	*rsa.PrivateKey
 }
 
 func (s *Session) OnMessage(pkg driver.Message) (err error) {
@@ -265,6 +266,8 @@ func (s *Session) Handshake() (err error) {
 	if err := s.Write(decoder); err != nil {
 		return err
 	}
+
+	s.PrivateKey = privateKey
 
 	return nil
 }
