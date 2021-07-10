@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/vimcoders/go-driver"
-	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -45,15 +44,15 @@ func NewBufferSize(n int) *Buffer {
 }
 
 type Encoder struct {
-	proto.Message
+	b []byte
 }
 
 func (e *Encoder) ToBytes() (b []byte, errr error) {
-	return proto.Marshal(e.Message)
+	return e.b, nil
 }
 
-func NewEncoder(msg proto.Message) driver.Message {
-	return &Encoder{msg}
+func NewEncoder(b []byte) driver.Message {
+	return &Encoder{b}
 }
 
 type Decoder struct {
@@ -77,6 +76,14 @@ type Session struct {
 }
 
 func (s *Session) OnMessage(pkg driver.Message) (err error) {
+	b, err := pkg.ToBytes()
+
+	if err != nil {
+		logger.Error("OnMessage %v", err)
+		return err
+	}
+
+	logger.Info("OnMessage %v", string(b))
 	return nil
 }
 
@@ -235,17 +242,17 @@ func (s *Session) Close() (err error) {
 	return s.Conn.Close()
 }
 
-func Handle(ctx context.Context, c net.Conn) driver.Session {
+func (s *Session) Handshake() (err error) {
 	privateKey, err := rsa.GenerateKey(rand.Reader, 64)
 
 	if err != nil {
-		return nil
+		return err
 	}
 
 	b, err := x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
 
 	if err != nil {
-		return nil
+		return err
 	}
 
 	block := &pem.Block{
@@ -253,6 +260,16 @@ func Handle(ctx context.Context, c net.Conn) driver.Session {
 		Bytes: b,
 	}
 
+	decoder := NewEncoder(pem.EncodeToMemory(block))
+
+	if err := s.Write(decoder); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func Handle(ctx context.Context, c net.Conn) driver.Session {
 	s := Session{
 		Conn:             c,
 		v:                make(map[interface{}]interface{}),
@@ -262,7 +279,11 @@ func Handle(ctx context.Context, c net.Conn) driver.Session {
 	go s.Pull(ctx)
 	go s.Push(ctx)
 
-	s.Write(NewDecoder(pem.EncodeToMemory(block)))
+	if err := s.Handshake(); err != nil {
+		logger.Error("Handle %v", err)
+		s.Close()
+		return nil
+	}
 
 	return &s
 }
