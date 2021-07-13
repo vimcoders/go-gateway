@@ -56,16 +56,17 @@ func NewEncoder(b []byte) driver.Message {
 }
 
 type Decoder struct {
-	b []byte
+	b   []byte
+	key *rsa.PrivateKey
 }
 
 func (d *Decoder) ToBytes() (b []byte, err error) {
-	return d.b, nil
+	return rsa.DecryptPKCS1v15(rand.Reader, d.key, d.b)
 }
 
-func NewDecoder(b []byte) driver.Message {
+func NewDecoder(k *rsa.PrivateKey, b []byte) driver.Message {
 	//TODO::Decode
-	return &Decoder{b}
+	return &Decoder{b, k}
 }
 
 type Session struct {
@@ -73,7 +74,7 @@ type Session struct {
 	id               int64
 	v                map[interface{}]interface{}
 	PushMessageQuene chan driver.Message
-	*rsa.PrivateKey
+	key              *rsa.PrivateKey
 }
 
 func (s *Session) OnMessage(pkg driver.Message) (err error) {
@@ -198,7 +199,7 @@ func (s *Session) Pull(ctx context.Context) (err error) {
 			return err
 		}
 
-		decoder := NewDecoder(buf[len(header):])
+		decoder := NewDecoder(s.key, buf[len(header):])
 
 		if err := s.OnMessage(decoder); err != nil {
 			return err
@@ -267,7 +268,7 @@ func (s *Session) Handshake() (err error) {
 		return err
 	}
 
-	s.PrivateKey = privateKey
+	s.key = privateKey
 
 	return nil
 }
