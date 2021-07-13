@@ -61,6 +61,10 @@ type Decoder struct {
 }
 
 func (d *Decoder) ToBytes() (b []byte, err error) {
+	if d.key == nil {
+		return d.b, nil
+	}
+
 	return rsa.DecryptPKCS1v15(rand.Reader, d.key, d.b)
 }
 
@@ -75,18 +79,7 @@ type Session struct {
 	v                map[interface{}]interface{}
 	PushMessageQuene chan driver.Message
 	key              *rsa.PrivateKey
-}
-
-func (s *Session) OnMessage(pkg driver.Message) (err error) {
-	b, err := pkg.ToBytes()
-
-	if err != nil {
-		logger.Error("OnMessage %v", err)
-		return err
-	}
-
-	logger.Info("OnMessage %v", string(b))
-	return nil
+	OnMessage        func(pkg driver.Message) (err error)
 }
 
 func (s *Session) Write(pkg driver.Message) (err error) {
@@ -278,13 +271,25 @@ func Handle(ctx context.Context, c net.Conn) driver.Session {
 		Conn:             c,
 		v:                make(map[interface{}]interface{}),
 		PushMessageQuene: make(chan driver.Message),
+		OnMessage: func(pkg driver.Message) (err error) {
+			b, err := pkg.ToBytes()
+
+			if err != nil {
+				logger.Error("OnMessage %v", err)
+				return err
+			}
+
+			logger.Info("OnMessage %v", string(b))
+
+			return nil
+		},
 	}
 
 	go s.Pull(ctx)
 	go s.Push(ctx)
 
 	if err := s.Handshake(); err != nil {
-		logger.Error("Handle %v", err)
+		logger.Error("Handshake %v", err)
 		s.Close()
 		return nil
 	}

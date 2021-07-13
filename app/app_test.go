@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"sync"
 	"testing"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -27,7 +28,11 @@ func TestMain(m *testing.M) {
 }
 
 func TestHandshake(t *testing.T) {
+	var waitGroup sync.WaitGroup
+
 	for i := 0; i < 10; i++ {
+		waitGroup.Add(1)
+
 		t.Run(fmt.Sprintf("case %v", i), func(t *testing.T) {
 			c, err := net.Dial("tcp", ":8888")
 
@@ -40,9 +45,25 @@ func TestHandshake(t *testing.T) {
 				Conn:             c,
 				v:                make(map[interface{}]interface{}),
 				PushMessageQuene: make(chan driver.Message),
+				OnMessage: func(pkg driver.Message) (err error) {
+					b, err := pkg.ToBytes()
+
+					if err != nil {
+						logger.Error("OnMessage %v", err)
+						return err
+					}
+
+					logger.Info("OnMessage %v", string(b))
+
+					waitGroup.Done()
+
+					return nil
+				},
 			}
 
 			go s.Pull(context.Background())
 		})
 	}
+
+	waitGroup.Wait()
 }
