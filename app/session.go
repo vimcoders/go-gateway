@@ -18,7 +18,7 @@ import (
 const (
 	Version           = 1
 	HeaderLength      = 4
-	DefaultBufferSize = 128
+	DefaultBufferSize = 512
 )
 
 type Buffer struct {
@@ -44,15 +44,20 @@ func NewBufferSize(n int) *Buffer {
 }
 
 type Encoder struct {
-	b []byte
+	b   []byte
+	key *rsa.PublicKey
 }
 
-func (e *Encoder) ToBytes() (b []byte, errr error) {
-	return e.b, nil
+func (e *Encoder) ToBytes() (b []byte, err error) {
+	if e.key == nil {
+		return e.b, nil
+	}
+
+	return rsa.EncryptPKCS1v15(rand.Reader, e.key, e.b)
 }
 
-func NewEncoder(b []byte) driver.Message {
-	return &Encoder{b}
+func NewEncoder(key *rsa.PublicKey, b []byte) driver.Message {
+	return &Encoder{b, key}
 }
 
 type Decoder struct {
@@ -238,7 +243,7 @@ func (s *Session) Close() (err error) {
 }
 
 func (s *Session) Handshake() (err error) {
-	privateKey, err := rsa.GenerateKey(rand.Reader, 64)
+	privateKey, err := rsa.GenerateKey(rand.Reader, 512)
 
 	if err != nil {
 		return err
@@ -251,11 +256,11 @@ func (s *Session) Handshake() (err error) {
 	}
 
 	block := &pem.Block{
-		Type:  "RSA PRIVATE KEY",
+		Type:  "PUBLIC KEY",
 		Bytes: b,
 	}
 
-	decoder := NewEncoder(pem.EncodeToMemory(block))
+	decoder := NewEncoder(nil, pem.EncodeToMemory(block))
 
 	if err := s.Write(decoder); err != nil {
 		return err
@@ -279,9 +284,9 @@ func Handle(ctx context.Context, c net.Conn) driver.Session {
 				return err
 			}
 
-			logger.Info("OnMessage %v", string(b))
+			logger.Info("OnMessage %v..", string(b))
 
-			return nil
+			return c.Close()
 		},
 	}
 

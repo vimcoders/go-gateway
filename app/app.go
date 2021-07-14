@@ -42,7 +42,7 @@ func Listen(waitGroup *sync.WaitGroup) (err error) {
 			continue
 		}
 
-		Handle(context.Background(), conn)
+		go Handle(context.Background(), conn)
 	}
 }
 
