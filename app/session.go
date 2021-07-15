@@ -16,67 +16,9 @@ import (
 )
 
 const (
-	Version           = 1
-	HeaderLength      = 4
-	DefaultBufferSize = 512
+	Version      = 1
+	HeaderLength = 4
 )
-
-type Buffer struct {
-	buf []byte
-}
-
-func (b *Buffer) Take(n int) []byte {
-	if n < len(b.buf) {
-		return b.buf[:n]
-	}
-
-	return make([]byte, n)
-}
-
-func NewBuffer() *Buffer {
-	return NewBufferSize(DefaultBufferSize)
-}
-
-func NewBufferSize(n int) *Buffer {
-	return &Buffer{
-		buf: make([]byte, n),
-	}
-}
-
-type Encoder struct {
-	b   []byte
-	key *rsa.PublicKey
-}
-
-func (e *Encoder) ToBytes() (b []byte, err error) {
-	if e.key == nil {
-		return e.b, nil
-	}
-
-	return rsa.EncryptPKCS1v15(rand.Reader, e.key, e.b)
-}
-
-func NewEncoder(key *rsa.PublicKey, b []byte) driver.Message {
-	return &Encoder{b, key}
-}
-
-type Decoder struct {
-	b   []byte
-	key *rsa.PrivateKey
-}
-
-func (d *Decoder) ToBytes() (b []byte, err error) {
-	if d.key == nil {
-		return d.b, nil
-	}
-
-	return rsa.DecryptPKCS1v15(rand.Reader, d.key, d.b)
-}
-
-func NewDecoder(k *rsa.PrivateKey, b []byte) driver.Message {
-	//TODO::Decode
-	return &Decoder{b, k}
-}
 
 type Session struct {
 	net.Conn
