@@ -6,14 +6,11 @@ import (
 	"sync"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/vimcoders/go-driver"
 	"github.com/vimcoders/go-lib"
-	"github.com/vimcoders/sqlx-go-driver"
 )
 
 var logger driver.Logger
-var connector driver.Connector
 
 func Listen(waitGroup *sync.WaitGroup) (err error) {
 	defer func() {
@@ -74,15 +71,9 @@ func Run() {
 
 	logger = sysLogger
 
-	sqlConnector, err := sqlx.Connect(&sqlx.Config{
-		DriverName: "mysql",
-	})
-
 	if err != nil {
 		panic(err)
 	}
-
-	connector = sqlConnector
 
 	var waitGroup sync.WaitGroup
 

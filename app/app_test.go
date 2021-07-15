@@ -10,12 +10,8 @@ import (
 	"sync"
 	"testing"
 
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/vimcoders/go-driver"
-	"github.com/vimcoders/go-gateway/pb"
 	"github.com/vimcoders/go-lib"
-	_ "github.com/vimcoders/sqlx-go-driver"
-	"google.golang.org/protobuf/proto"
 )
 
 func TestMain(m *testing.M) {
@@ -75,16 +71,7 @@ func TestLogin(t *testing.T) {
 
 				publicKey := key.(*rsa.PublicKey)
 
-				login := &pb.Login{UserName: "golangxxxxxxxxxx", Pwd: "golangxxxxxxxxxx"}
-
-				loginBytes, err := proto.Marshal(login)
-
-				if err != nil {
-					logger.Error("marshal %v", err)
-					return err
-				}
-
-				coder := NewEncoder(publicKey, loginBytes)
+				coder := NewEncoder(publicKey, []byte("hello golang"))
 
 				if err := s.Write(coder); err != nil {
 					logger.Error("encoder %v", err)

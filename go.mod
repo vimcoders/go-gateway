@@ -1,11 +1,8 @@
 module github.com/vimcoders/go-gateway
 
-go 1.15
+go 1.16
 
 require (
-	github.com/go-sql-driver/mysql v1.6.0
 	github.com/vimcoders/go-driver v0.0.0-20210704144625-83508d9610b4
-	github.com/vimcoders/go-lib v0.0.0-20210417052910-33fdb6b9d9ae
-	github.com/vimcoders/sqlx-go-driver v0.0.0-20210709144116-c76b2895a6f2
-	google.golang.org/protobuf v1.27.1 // indirect
+	github.com/vimcoders/go-lib v0.0.0-20210715052407-bd77d2258340
 )
