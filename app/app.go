@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"net"
 	"sync"
 	"time"
@@ -11,6 +12,8 @@ import (
 )
 
 var logger driver.Logger
+var closeFunc context.CancelFunc
+var closeCtx context.Context
 
 func Listen(waitGroup *sync.WaitGroup) (err error) {
 	defer func() {
@@ -32,6 +35,12 @@ func Listen(waitGroup *sync.WaitGroup) (err error) {
 	}
 
 	for {
+		select {
+		case <-closeCtx.Done():
+			return errors.New("shutdown")
+		default:
+		}
+
 		conn, err := listener.Accept()
 
 		if err != nil {
@@ -39,7 +48,7 @@ func Listen(waitGroup *sync.WaitGroup) (err error) {
 			continue
 		}
 
-		go Handle(context.Background(), conn)
+		go Handle(closeCtx, conn)
 	}
 }
 
@@ -61,6 +70,8 @@ func Listen(waitGroup *sync.WaitGroup) (err error) {
 //}
 
 func Run() {
+	closeCtx, closeFunc = context.WithCancel(context.Background())
+
 	now := time.Now()
 
 	sysLogger, err := lib.NewSyslogger()
@@ -70,10 +81,6 @@ func Run() {
 	}
 
 	logger = sysLogger
-
-	if err != nil {
-		panic(err)
-	}
 
 	var waitGroup sync.WaitGroup
 
