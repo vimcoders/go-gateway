@@ -73,7 +73,7 @@ func TestLogin(t *testing.T) {
 
 				coder := NewEncoder(publicKey, []byte("hello golang"))
 
-				if err := s.Write(coder); err != nil {
+				if err := s.Send(coder); err != nil {
 					logger.Error("encoder %v", err)
 					return err
 				}

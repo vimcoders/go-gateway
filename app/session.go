@@ -9,7 +9,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"net"
-	"runtime/debug"
 	"time"
 
 	"github.com/vimcoders/go-driver"
@@ -29,10 +28,10 @@ type Session struct {
 	OnMessage        func(pkg driver.Message) (err error)
 }
 
-func (s *Session) Write(pkg driver.Message) (err error) {
+func (s *Session) Send(pkg driver.Message) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
-			logger.Error("write recoder %v debug %v", e, string(debug.Stack()))
+			logger.Error("write recoder %v", e)
 		}
 
 		if err != nil {
@@ -48,7 +47,7 @@ func (s *Session) Write(pkg driver.Message) (err error) {
 func (s *Session) Push(ctx context.Context) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
-			logger.Error("push recoder %v debug %v", e, string(debug.Stack()))
+			logger.Error("push recoder %v", e)
 		}
 
 		if err != nil {
@@ -104,7 +103,7 @@ func (s *Session) Push(ctx context.Context) (err error) {
 func (s *Session) Pull(ctx context.Context) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
-			logger.Error("pull recoder %v debug %v", e, string(debug.Stack()))
+			logger.Error("pull recoder %v", e)
 		}
 
 		if err != nil {
@@ -172,7 +171,7 @@ func (s *Session) Delete(key interface{}) error {
 func (s *Session) Close() (err error) {
 	defer func() {
 		if e := recover(); e != nil {
-			logger.Error("session close %v debug %v", e, string(debug.Stack()))
+			logger.Error("session close %v", e)
 		}
 
 		if err != nil {
@@ -204,7 +203,7 @@ func (s *Session) Handshake() (err error) {
 
 	decoder := NewEncoder(nil, pem.EncodeToMemory(block))
 
-	if err := s.Write(decoder); err != nil {
+	if err := s.Send(decoder); err != nil {
 		return err
 	}
 
