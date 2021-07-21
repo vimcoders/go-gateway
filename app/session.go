@@ -15,8 +15,7 @@ import (
 )
 
 const (
-	Version      = 1
-	HeaderLength = 4
+	Version = 1
 )
 
 type Session struct {
@@ -78,7 +77,9 @@ func (s *Session) Push(ctx context.Context) (err error) {
 			return err
 		}
 
-		header := make([]byte, HeaderLength)
+		const headerLength = 4
+
+		header := make([]byte, headerLength)
 		length := len(b)
 
 		header[0] = Version
@@ -120,7 +121,9 @@ func (s *Session) Pull(ctx context.Context) (err error) {
 		default:
 		}
 
-		header, err := reader.Peek(HeaderLength)
+		const headerLength = 4
+
+		header, err := reader.Peek(headerLength)
 
 		if err != nil {
 			return err
