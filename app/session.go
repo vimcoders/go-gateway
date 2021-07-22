@@ -211,6 +211,4 @@ func Handle(ctx context.Context, c net.Conn) (err error) {
 			}
 		}
 	}
-
-	return nil
 }

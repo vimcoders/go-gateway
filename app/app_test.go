@@ -25,7 +25,7 @@ func TestLogin(t *testing.T) {
 
 	for i := 0; i < 10000; i++ {
 		waitGroup.Add(1)
-		time.Sleep(time.Second)
+		time.Sleep(time.Microsecond)
 
 		t.Run(fmt.Sprintf("case %v", i), func(t *testing.T) {
 			defer waitGroup.Done()
@@ -38,8 +38,9 @@ func TestLogin(t *testing.T) {
 			}
 
 			s := Session{
-				Conn:   c,
-				Buffer: NewBuffer(),
+				Conn:             c,
+				Buffer:           NewBuffer(),
+				PushMessageQuene: make(chan driver.Message, 1),
 			}
 
 			s.OnMessage = func(pkg driver.Message) (err error) {
@@ -65,15 +66,31 @@ func TestLogin(t *testing.T) {
 
 				coder := NewEncoder(publicKey, []byte("hello golang"))
 
-				if err := s.Push(coder); err != nil {
+				if err := s.Send(coder); err != nil {
 					logger.Error("encoder %v", err)
 					return err
 				}
 
-				return s.Close()
+				return nil
 			}
 
-			s.Pull()
+			for {
+				select {
+				case pkg := <-s.PushMessageQuene:
+					if err := s.Push(pkg); err != nil {
+						logger.Error("encoder %v", err)
+						return
+					}
+
+					s.Close()
+					return
+				default:
+					if err := s.Pull(); err != nil {
+						logger.Error("encoder %v", err)
+						return
+					}
+				}
+			}
 		})
 	}
 
