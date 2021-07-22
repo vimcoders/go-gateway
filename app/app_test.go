@@ -21,6 +21,10 @@ func TestMain(m *testing.M) {
 }
 
 func TestLogin(t *testing.T) {
+	type Client struct {
+		Session
+	}
+
 	var waitGroup sync.WaitGroup
 
 	for i := 0; i < 10000; i++ {
@@ -37,13 +41,15 @@ func TestLogin(t *testing.T) {
 				return
 			}
 
-			s := Session{
-				Conn:             c,
-				Buffer:           NewBuffer(),
-				PushMessageQuene: make(chan driver.Message, 1),
+			client := Client{
+				Session{
+					Conn:             c,
+					Buffer:           NewBuffer(),
+					PushMessageQuene: make(chan driver.Message, 1),
+				},
 			}
 
-			s.OnMessage = func(pkg driver.Message) (err error) {
+			client.OnMessage = func(pkg driver.Message) (err error) {
 				b, err := pkg.ToBytes()
 
 				if err != nil {
@@ -66,7 +72,7 @@ func TestLogin(t *testing.T) {
 
 				coder := NewEncoder(publicKey, []byte("hello golang"))
 
-				if err := s.Send(coder); err != nil {
+				if err := client.Send(coder); err != nil {
 					logger.Error("encoder %v", err)
 					return err
 				}
@@ -76,16 +82,16 @@ func TestLogin(t *testing.T) {
 
 			for {
 				select {
-				case pkg := <-s.PushMessageQuene:
-					if err := s.Push(pkg); err != nil {
+				case pkg := <-client.PushMessageQuene:
+					if err := client.Push(pkg); err != nil {
 						logger.Error("encoder %v", err)
 						return
 					}
 
-					s.Close()
+					client.Close()
 					return
 				default:
-					if err := s.Pull(); err != nil {
+					if err := client.Pull(); err != nil {
 						logger.Error("encoder %v", err)
 						return
 					}
