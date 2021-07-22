@@ -16,6 +16,10 @@ func (b *Buffer) Take(n int) []byte {
 	return make([]byte, n)
 }
 
+func (b *Buffer) Buffer() []byte {
+	return b.buf
+}
+
 func NewBuffer() *Buffer {
 	return NewBufferSize(DefaultBufferSize)
 }

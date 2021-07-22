@@ -11,9 +11,14 @@ import (
 	"github.com/vimcoders/go-lib"
 )
 
-var logger driver.Logger
-var closeFunc context.CancelFunc
-var closeCtx context.Context
+var (
+	logger    driver.Logger
+	closeFunc context.CancelFunc
+	closeCtx  context.Context
+	addr      = ":8888"
+	network   = "tcp"
+	timeout   = time.Duration(50000)
+)
 
 func Listen(waitGroup *sync.WaitGroup) (err error) {
 	defer func() {
@@ -28,7 +33,7 @@ func Listen(waitGroup *sync.WaitGroup) (err error) {
 		waitGroup.Done()
 	}()
 
-	listener, err := net.Listen("tcp", ":8888")
+	listener, err := net.Listen(network, addr)
 
 	if err != nil {
 		return err
@@ -71,6 +76,7 @@ func Listen(waitGroup *sync.WaitGroup) (err error) {
 
 func Run() {
 	closeCtx, closeFunc = context.WithCancel(context.Background())
+	defer closeFunc()
 
 	now := time.Now()
 

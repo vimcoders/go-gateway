@@ -1,7 +1,6 @@
 package app
 
 import (
-	"context"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
@@ -39,9 +38,8 @@ func TestLogin(t *testing.T) {
 			}
 
 			s := Session{
-				Conn:             c,
-				v:                make(map[interface{}]interface{}),
-				PushMessageQuene: make(chan driver.Message),
+				Conn:   c,
+				Buffer: NewBuffer(),
 			}
 
 			s.OnMessage = func(pkg driver.Message) (err error) {
@@ -67,16 +65,15 @@ func TestLogin(t *testing.T) {
 
 				coder := NewEncoder(publicKey, []byte("hello golang"))
 
-				if err := s.Send(coder); err != nil {
+				if err := s.Push(coder); err != nil {
 					logger.Error("encoder %v", err)
 					return err
 				}
 
-				return nil
+				return s.Close()
 			}
 
-			go s.Push(context.Background())
-			s.Pull(context.Background())
+			s.Pull()
 		})
 	}
 

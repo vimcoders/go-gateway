@@ -1,7 +1,6 @@
 package app
 
 import (
-	"bufio"
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
@@ -19,6 +18,7 @@ const (
 )
 
 type Session struct {
+	*Buffer
 	net.Conn
 	id               int64
 	v                map[interface{}]interface{}
@@ -43,114 +43,62 @@ func (s *Session) Send(pkg driver.Message) (err error) {
 	return nil
 }
 
-func (s *Session) Push(ctx context.Context) (err error) {
-	defer func() {
-		if e := recover(); e != nil {
-			logger.Error("push recoder %v", e)
-		}
+func (s *Session) Push(pkg driver.Message) (err error) {
+	b, err := pkg.ToBytes()
 
-		if err != nil {
-			logger.Error("push err %v", err)
-		}
-
-		s.Close()
-	}()
-
-	buffer := NewBuffer()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return errors.New("shut down")
-		default:
-		}
-
-		pkg, ok := <-s.PushMessageQuene
-
-		if !ok {
-			return errors.New("shutdown")
-		}
-
-		b, err := pkg.ToBytes()
-
-		if err != nil {
-			return err
-		}
-
-		const headerLength = 4
-
-		header := make([]byte, headerLength)
-		length := len(b)
-
-		header[0] = Version
-		header[1] = uint8(length >> 16)
-		header[2] = uint8(length >> 8)
-		header[3] = uint8(length)
-
-		buf := buffer.Take(len(header) + len(b))
-		copy(buf, header)
-		copy(buf[len(header):], b)
-
-		if err := s.SetWriteDeadline(time.Now().Add(time.Second * 5)); err != nil {
-			return err
-		}
-
-		if _, err := s.Conn.Write(buf); err != nil {
-			return err
-		}
+	if err != nil {
+		return err
 	}
+
+	const headerLength = 4
+
+	header := make([]byte, headerLength)
+	length := len(b)
+
+	header[0] = Version
+	header[1] = uint8(length >> 16)
+	header[2] = uint8(length >> 8)
+	header[3] = uint8(length)
+
+	buf := s.Take(length + len(header))
+
+	copy(buf, header)
+	copy(buf[len(header):], b)
+
+	if err := s.SetDeadline(time.Now().Add(time.Millisecond * timeout)); err != nil {
+		return err
+	}
+
+	if _, err := s.Conn.Write(buf); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (s *Session) Pull(ctx context.Context) (err error) {
-	defer func() {
-		if e := recover(); e != nil {
-			logger.Error("pull recoder %v", e)
-		}
+func (s *Session) Pull() (err error) {
+	buffer := s.Buffer.Buffer()
 
-		if err != nil {
-			logger.Error("pull err %v", err)
-		}
-	}()
-
-	reader := bufio.NewReaderSize(s.Conn, DefaultBufferSize)
-
-	for {
-		select {
-		case <-ctx.Done():
-			return errors.New("shut down")
-		default:
-		}
-
-		const headerLength = 4
-
-		header, err := reader.Peek(headerLength)
-
-		if err != nil {
-			return err
-		}
-
-		if header[0] != Version {
-			return errors.New("Version is Unknown")
-		}
-
-		length := int(uint32(uint32(header[1])<<16 | uint32(header[2])<<8 | uint32(header[3])))
-
-		buf, err := reader.Peek(length + len(header))
-
-		if err != nil {
-			return err
-		}
-
-		decoder := NewDecoder(s.key, buf[len(header):])
-
-		if err := s.OnMessage(decoder); err != nil {
-			return err
-		}
-
-		if _, err := reader.Discard(len(buf)); err != nil {
-			return err
-		}
+	if err := s.SetDeadline(time.Now().Add(time.Millisecond * timeout)); err != nil {
+		return err
 	}
+
+	if _, err := s.Read(buffer); err != nil {
+		return err
+	}
+
+	if buffer[0] != Version {
+		return errors.New("Version is Unknown")
+	}
+
+	length := int(uint32(uint32(buffer[1])<<16 | uint32(buffer[2])<<8 | uint32(buffer[3])))
+	decoder := NewDecoder(s.key, buffer[4:length+4])
+
+	if err := s.OnMessage(decoder); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *Session) SessionID() int64 {
@@ -215,11 +163,20 @@ func (s *Session) Handshake() (err error) {
 	return nil
 }
 
-func Handle(ctx context.Context, c net.Conn) driver.Session {
+func Handle(ctx context.Context, c net.Conn) (err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			logger.Error("Handle recover %v", e)
+		}
+
+		if err != nil {
+			logger.Error("Handle %v", err)
+		}
+	}()
+
 	s := Session{
 		Conn:             c,
-		v:                make(map[interface{}]interface{}),
-		PushMessageQuene: make(chan driver.Message),
+		PushMessageQuene: make(chan driver.Message, 1),
 		OnMessage: func(pkg driver.Message) (err error) {
 			b, err := pkg.ToBytes()
 
@@ -230,18 +187,30 @@ func Handle(ctx context.Context, c net.Conn) driver.Session {
 
 			logger.Info("OnMessage %v..", string(b))
 
-			return c.Close()
+			return nil
 		},
+		v:      make(map[interface{}]interface{}),
+		Buffer: NewBuffer(),
 	}
 
-	go s.Pull(ctx)
-	go s.Push(ctx)
+	defer s.Close()
 
 	if err := s.Handshake(); err != nil {
-		logger.Error("Handshake %v", err)
-		s.Close()
-		return nil
+		return err
 	}
 
-	return &s
+	for {
+		select {
+		case pkg := <-s.PushMessageQuene:
+			if err := s.Push(pkg); err != nil {
+				return err
+			}
+		default:
+			if err := s.Pull(); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
