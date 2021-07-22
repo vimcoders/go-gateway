@@ -27,7 +27,7 @@ func TestLogin(t *testing.T) {
 
 	var waitGroup sync.WaitGroup
 
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 20000; i++ {
 		waitGroup.Add(1)
 		time.Sleep(time.Microsecond)
 
@@ -41,14 +41,11 @@ func TestLogin(t *testing.T) {
 				return
 			}
 
-			client := Client{
-				Session{
-					Conn:             c,
-					Buffer:           NewBuffer(),
-					PushMessageQuene: make(chan driver.Message, 1),
-				},
-			}
+			var client Client
 
+			client.Conn = c
+			client.Buffer = NewBuffer()
+			client.PushMessageQuene = make(chan driver.Message, 1)
 			client.OnMessage = func(pkg driver.Message) (err error) {
 				b, err := pkg.ToBytes()
 
@@ -91,10 +88,14 @@ func TestLogin(t *testing.T) {
 					client.Close()
 					return
 				default:
-					if err := client.Pull(); err != nil {
+					pkg, err := client.Pull()
+
+					if err != nil {
 						logger.Error("encoder %v", err)
 						return
 					}
+
+					client.OnMessage(pkg)
 				}
 			}
 		})

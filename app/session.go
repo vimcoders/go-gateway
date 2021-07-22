@@ -50,20 +50,21 @@ func (s *Session) Push(pkg driver.Message) (err error) {
 		return err
 	}
 
-	const headerLength = 4
-
-	header := make([]byte, headerLength)
 	length := len(b)
 
-	header[0] = Version
-	header[1] = uint8(length >> 16)
-	header[2] = uint8(length >> 8)
-	header[3] = uint8(length)
+	const header = 4
 
-	buf := s.Take(length + len(header))
+	buffer := make([]byte, header)
 
-	copy(buf, header)
-	copy(buf[len(header):], b)
+	buffer[0] = Version
+	buffer[1] = uint8(length >> 16)
+	buffer[2] = uint8(length >> 8)
+	buffer[3] = uint8(length)
+
+	buf := s.Take(length + header)
+
+	copy(buf, buffer)
+	copy(buf[header:], b)
 
 	if err := s.SetDeadline(time.Now().Add(time.Millisecond * timeout)); err != nil {
 		return err
@@ -76,29 +77,25 @@ func (s *Session) Push(pkg driver.Message) (err error) {
 	return nil
 }
 
-func (s *Session) Pull() (err error) {
+func (s *Session) Pull() (driver.Message, error) {
 	buffer := s.Buffer.Buffer()
 
 	if err := s.SetDeadline(time.Now().Add(time.Millisecond * timeout)); err != nil {
-		return err
+		return nil, err
 	}
 
 	if _, err := s.Read(buffer); err != nil {
-		return err
+		return nil, err
 	}
 
 	if buffer[0] != Version {
-		return errors.New("Version is Unknown")
+		return nil, errors.New("unknow version")
 	}
 
 	length := int(uint32(uint32(buffer[1])<<16 | uint32(buffer[2])<<8 | uint32(buffer[3])))
-	decoder := NewDecoder(s.key, buffer[4:length+4])
+	const header = 4
 
-	if err := s.OnMessage(decoder); err != nil {
-		return err
-	}
-
-	return nil
+	return NewDecoder(s.key, buffer[header:length+header]), nil
 }
 
 func (s *Session) SessionID() int64 {
@@ -206,9 +203,13 @@ func Handle(ctx context.Context, c net.Conn) (err error) {
 				return err
 			}
 		default:
-			if err := s.Pull(); err != nil {
+			pkg, err := s.Pull()
+
+			if err != nil {
 				return err
 			}
+
+			s.OnMessage(pkg)
 		}
 	}
 }
