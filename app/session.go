@@ -27,6 +27,33 @@ type Session struct {
 	OnMessage        func(pkg driver.Message) (err error)
 }
 
+func (s *Session) WaitMessage() (err error) {
+	for {
+		select {
+		case pkg := <-s.PushMessageQuene:
+			if pkg == nil {
+				return errors.New("shutdown")
+			}
+
+			if err := s.Push(pkg); err != nil {
+				return err
+			}
+		default:
+			pkg, err := s.Pull()
+
+			if err != nil {
+				return err
+			}
+
+			if err := s.OnMessage(pkg); err != nil {
+				return err
+			}
+		}
+	}
+
+	return errors.New("shut down")
+}
+
 func (s *Session) Send(pkg driver.Message) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
@@ -78,11 +105,11 @@ func (s *Session) Push(pkg driver.Message) (err error) {
 }
 
 func (s *Session) Pull() (driver.Message, error) {
-	buffer := s.Buffer.Buffer()
-
 	if err := s.SetDeadline(time.Now().Add(time.Millisecond * timeout)); err != nil {
 		return nil, err
 	}
+
+	buffer := s.Take(DefaultBufferSize)
 
 	if _, err := s.Read(buffer); err != nil {
 		return nil, err
@@ -174,20 +201,25 @@ func Handle(ctx context.Context, c net.Conn) (err error) {
 	s := Session{
 		Conn:             c,
 		PushMessageQuene: make(chan driver.Message, 1),
-		OnMessage: func(pkg driver.Message) (err error) {
-			b, err := pkg.ToBytes()
+		Buffer:           NewBuffer(),
+		v:                make(map[interface{}]interface{}),
+	}
 
-			if err != nil {
-				logger.Error("OnMessage %v", err)
-				return err
-			}
+	s.OnMessage = func(pkg driver.Message) (err error) {
+		b, err := pkg.ToBytes()
 
-			logger.Info("OnMessage %v..", string(b))
+		if err != nil {
+			logger.Error("OnMessage %v", err)
+			return err
+		}
 
-			return nil
-		},
-		v:      make(map[interface{}]interface{}),
-		Buffer: NewBuffer(),
+		logger.Info("OnMessage %v..", string(b))
+
+		if err := s.Send(NewEncoder(nil, b)); err != nil {
+			return err
+		}
+
+		return nil
 	}
 
 	defer s.Close()
@@ -196,20 +228,5 @@ func Handle(ctx context.Context, c net.Conn) (err error) {
 		return err
 	}
 
-	for {
-		select {
-		case pkg := <-s.PushMessageQuene:
-			if err := s.Push(pkg); err != nil {
-				return err
-			}
-		default:
-			pkg, err := s.Pull()
-
-			if err != nil {
-				return err
-			}
-
-			s.OnMessage(pkg)
-		}
-	}
+	return s.WaitMessage()
 }

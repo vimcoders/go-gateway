@@ -44,16 +44,15 @@ func Listen(waitGroup *sync.WaitGroup) (err error) {
 		case <-closeCtx.Done():
 			return errors.New("shutdown")
 		default:
+			conn, err := listener.Accept()
+
+			if err != nil {
+				logger.Error("Listen %v", err.Error())
+				continue
+			}
+
+			go Handle(closeCtx, conn)
 		}
-
-		conn, err := listener.Accept()
-
-		if err != nil {
-			logger.Error("Listen %v", err.Error())
-			continue
-		}
-
-		go Handle(closeCtx, conn)
 	}
 }
 

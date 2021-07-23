@@ -4,18 +4,17 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"net"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/vimcoders/go-driver"
 )
 
 func TestMain(m *testing.M) {
 	fmt.Println("begin")
-	go Run()
 	m.Run()
 	fmt.Println("end")
 }
@@ -29,9 +28,8 @@ func TestLogin(t *testing.T) {
 
 	for i := 0; i < 20000; i++ {
 		waitGroup.Add(1)
-		time.Sleep(time.Microsecond)
 
-		t.Run(fmt.Sprintf("case %v", i), func(t *testing.T) {
+		go t.Run(fmt.Sprintf("case %v", i), func(t *testing.T) {
 			defer waitGroup.Done()
 
 			c, err := net.Dial("tcp", ":8888")
@@ -50,18 +48,18 @@ func TestLogin(t *testing.T) {
 				b, err := pkg.ToBytes()
 
 				if err != nil {
-					logger.Error("OnMessage %v", err)
 					return err
 				}
 
-				logger.Info("%v", string(b))
+				block, result := pem.Decode(b)
 
-				block, _ := pem.Decode(b)
+				if len(result) > 0 {
+					return errors.New(fmt.Sprintf("pem result %v", string(result)))
+				}
 
 				key, err := x509.ParsePKIXPublicKey(block.Bytes)
 
 				if err != nil {
-					logger.Error("OnMessage %v", err)
 					return err
 				}
 
@@ -70,34 +68,17 @@ func TestLogin(t *testing.T) {
 				coder := NewEncoder(publicKey, []byte("hello golang"))
 
 				if err := client.Send(coder); err != nil {
-					logger.Error("encoder %v", err)
 					return err
 				}
 
 				return nil
 			}
 
-			for {
-				select {
-				case pkg := <-client.PushMessageQuene:
-					if err := client.Push(pkg); err != nil {
-						logger.Error("encoder %v", err)
-						return
-					}
-
-					client.Close()
-					return
-				default:
-					pkg, err := client.Pull()
-
-					if err != nil {
-						logger.Error("encoder %v", err)
-						return
-					}
-
-					client.OnMessage(pkg)
-				}
+			if err := client.WaitMessage(); err != nil {
+				t.Errorf("WaitMessage %v", err)
 			}
+
+			client.Close()
 		})
 	}
 
