@@ -9,6 +9,9 @@ import (
 
 	"github.com/vimcoders/go-driver"
 	"github.com/vimcoders/go-lib"
+
+	"net/http"
+	_ "net/http/pprof"
 )
 
 var (
@@ -16,6 +19,7 @@ var (
 	closeFunc context.CancelFunc
 	closeCtx  context.Context
 	addr      = ":8888"
+	httpAddr  = "localhost:8000"
 	network   = "tcp"
 	timeout   = time.Duration(50000)
 )
@@ -56,22 +60,21 @@ func Listen(waitGroup *sync.WaitGroup) (err error) {
 	}
 }
 
-//func Monitor(waitGroup *sync.WaitGroup) (err error) {
-//	defer func() {
-//		if e := recover(); e != nil {
-//			logger.Error("Listen %v", e)
-//		}
-//
-//		if err != nil {
-//			logger.Error("Listen %v", err)
-//		}
-//
-//		waitGroup.Done()
-//	}()
-//
-//	http.Handle("/metrics", promhttp.Handler())
-//	return http.ListenAndServe(":2112", nil)
-//}
+func Monitor(waitGroup *sync.WaitGroup) (err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			logger.Error("Listen %v", e)
+		}
+
+		if err != nil {
+			logger.Error("Listen %v", err)
+		}
+
+		waitGroup.Done()
+	}()
+
+	return http.ListenAndServe(httpAddr, nil)
+}
 
 func Run() {
 	closeCtx, closeFunc = context.WithCancel(context.Background())
@@ -89,11 +92,11 @@ func Run() {
 
 	var waitGroup sync.WaitGroup
 
-	waitGroup.Add(1)
+	waitGroup.Add(2)
 
 	go Listen(&waitGroup)
 
-	//go Monitor(&waitGroup)
+	go Monitor(&waitGroup)
 
 	logger.Info("Run Cost %v", time.Now().Sub(now))
 

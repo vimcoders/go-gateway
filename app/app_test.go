@@ -26,7 +26,7 @@ func TestLogin(t *testing.T) {
 
 	var waitGroup sync.WaitGroup
 
-	for i := 0; i < 20000; i++ {
+	for i := 0; i < 20000000; i++ {
 		waitGroup.Add(1)
 
 		go t.Run(fmt.Sprintf("case %v", i), func(t *testing.T) {
