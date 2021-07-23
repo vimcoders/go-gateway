@@ -2,6 +2,10 @@ package app
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"net"
 	"sync"
@@ -15,13 +19,15 @@ import (
 )
 
 var (
-	logger    driver.Logger
-	closeFunc context.CancelFunc
-	closeCtx  context.Context
-	addr      = ":8888"
-	httpAddr  = "localhost:8000"
-	network   = "tcp"
-	timeout   = time.Duration(50000)
+	logger       driver.Logger
+	closeFunc    context.CancelFunc
+	closeCtx     context.Context
+	addr         = ":8888"
+	httpAddr     = "localhost:8000"
+	network      = "tcp"
+	timeout      = time.Duration(50000)
+	privateKey   *rsa.PrivateKey
+	handshakePkg driver.Message
 )
 
 func Listen(waitGroup *sync.WaitGroup) (err error) {
@@ -76,6 +82,27 @@ func Monitor(waitGroup *sync.WaitGroup) (err error) {
 	return http.ListenAndServe(httpAddr, nil)
 }
 
+func GenerateKey() (*rsa.PrivateKey, driver.Message, error) {
+	key, err := rsa.GenerateKey(rand.Reader, 512)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	b, err := x509.MarshalPKIXPublicKey(&key.PublicKey)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	block := &pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: b,
+	}
+
+	return key, NewEncoder(nil, pem.EncodeToMemory(block)), nil
+}
+
 func Run() {
 	closeCtx, closeFunc = context.WithCancel(context.Background())
 	defer closeFunc()
@@ -89,6 +116,15 @@ func Run() {
 	}
 
 	logger = sysLogger
+
+	key, pkg, err := GenerateKey()
+
+	if err != nil {
+		logger.Error("GenerateKey %v", err)
+	}
+
+	privateKey = key
+	handshakePkg = pkg
 
 	var waitGroup sync.WaitGroup
 

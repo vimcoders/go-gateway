@@ -2,10 +2,6 @@ package app
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
-	"encoding/pem"
 	"errors"
 	"net"
 	"time"
@@ -23,7 +19,6 @@ type Session struct {
 	id               int64
 	v                map[interface{}]interface{}
 	PushMessageQuene chan driver.Message
-	key              *rsa.PrivateKey
 	OnMessage        func(pkg driver.Message) (err error)
 }
 
@@ -50,8 +45,6 @@ func (s *Session) WaitMessage() (err error) {
 			}
 		}
 	}
-
-	return errors.New("shut down")
 }
 
 func (s *Session) Send(pkg driver.Message) (err error) {
@@ -122,7 +115,7 @@ func (s *Session) Pull() (driver.Message, error) {
 	length := int(uint32(uint32(buffer[1])<<16 | uint32(buffer[2])<<8 | uint32(buffer[3])))
 	const header = 4
 
-	return NewDecoder(s.key, buffer[header:length+header]), nil
+	return NewDecoder(privateKey, buffer[header:length+header]), nil
 }
 
 func (s *Session) SessionID() int64 {
@@ -156,35 +149,6 @@ func (s *Session) Close() (err error) {
 
 	close(s.PushMessageQuene)
 	return s.Conn.Close()
-}
-
-func (s *Session) Handshake() (err error) {
-	privateKey, err := rsa.GenerateKey(rand.Reader, 512)
-
-	if err != nil {
-		return err
-	}
-
-	b, err := x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
-
-	if err != nil {
-		return err
-	}
-
-	block := &pem.Block{
-		Type:  "PUBLIC KEY",
-		Bytes: b,
-	}
-
-	decoder := NewEncoder(nil, pem.EncodeToMemory(block))
-
-	if err := s.Send(decoder); err != nil {
-		return err
-	}
-
-	s.key = privateKey
-
-	return nil
 }
 
 func Handle(ctx context.Context, c net.Conn) (err error) {
@@ -224,7 +188,7 @@ func Handle(ctx context.Context, c net.Conn) (err error) {
 
 	defer s.Close()
 
-	if err := s.Handshake(); err != nil {
+	if err := s.Push(handshakePkg); err != nil {
 		return err
 	}
 

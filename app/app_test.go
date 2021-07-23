@@ -51,6 +51,8 @@ func TestLogin(t *testing.T) {
 					return err
 				}
 
+				t.Logf("rsa key %v", string(b))
+
 				block, result := pem.Decode(b)
 
 				if len(result) > 0 {
