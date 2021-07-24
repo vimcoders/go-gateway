@@ -43,6 +43,8 @@ func (s *Session) WaitMessage() (err error) {
 			if err := s.OnMessage(pkg); err != nil {
 				return err
 			}
+
+			time.Sleep(time.Second)
 		}
 	}
 }

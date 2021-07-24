@@ -4,7 +4,6 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"net"
 	"sync"
@@ -26,7 +25,7 @@ func TestLogin(t *testing.T) {
 
 	var waitGroup sync.WaitGroup
 
-	for i := 0; i < 20000000; i++ {
+	for i := 0; i < 20000; i++ {
 		waitGroup.Add(1)
 
 		go t.Run(fmt.Sprintf("case %v", i), func(t *testing.T) {
@@ -38,6 +37,8 @@ func TestLogin(t *testing.T) {
 				t.Error(err)
 				return
 			}
+
+			var publicKey *rsa.PublicKey
 
 			var client Client
 
@@ -51,12 +52,18 @@ func TestLogin(t *testing.T) {
 					return err
 				}
 
-				t.Logf("rsa key %v", string(b))
+				t.Logf("OnMessage %v", string(b))
 
 				block, result := pem.Decode(b)
 
 				if len(result) > 0 {
-					return errors.New(fmt.Sprintf("pem result %v", string(result)))
+					coder := NewEncoder(publicKey, []byte("hello golang 1"))
+
+					if err := client.Push(coder); err != nil {
+						return err
+					}
+
+					return nil
 				}
 
 				key, err := x509.ParsePKIXPublicKey(block.Bytes)
@@ -65,11 +72,11 @@ func TestLogin(t *testing.T) {
 					return err
 				}
 
-				publicKey := key.(*rsa.PublicKey)
+				publicKey = key.(*rsa.PublicKey)
 
 				coder := NewEncoder(publicKey, []byte("hello golang"))
 
-				if err := client.Send(coder); err != nil {
+				if err := client.Push(coder); err != nil {
 					return err
 				}
 
