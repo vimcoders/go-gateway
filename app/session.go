@@ -151,7 +151,7 @@ func (s *Session) Close() (err error) {
 	return s.Conn.Close()
 }
 
-func Handle(ctx context.Context, c net.Conn) (err error) {
+func Handle(ctx context.Context, c net.Conn, pkg driver.Message) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			logger.Error("Handle recover %v", e)
@@ -188,7 +188,7 @@ func Handle(ctx context.Context, c net.Conn) (err error) {
 
 	defer s.Close()
 
-	if err := s.Push(handshakePkg); err != nil {
+	if err := s.Push(pkg); err != nil {
 		return err
 	}
 

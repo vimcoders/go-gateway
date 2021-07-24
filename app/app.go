@@ -19,15 +19,14 @@ import (
 )
 
 var (
-	logger       driver.Logger
-	closeFunc    context.CancelFunc
-	closeCtx     context.Context
-	addr         = ":8888"
-	httpAddr     = "localhost:8000"
-	network      = "tcp"
-	timeout      = time.Duration(50000)
-	privateKey   *rsa.PrivateKey
-	handshakePkg driver.Message
+	logger     driver.Logger
+	closeFunc  context.CancelFunc
+	closeCtx   context.Context
+	addr       = ":8888"
+	httpAddr   = "localhost:8000"
+	network    = "tcp"
+	timeout    = time.Duration(50000)
+	privateKey *rsa.PrivateKey
 )
 
 func Listen(waitGroup *sync.WaitGroup) (err error) {
@@ -42,6 +41,19 @@ func Listen(waitGroup *sync.WaitGroup) (err error) {
 
 		waitGroup.Done()
 	}()
+
+	b, err := x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
+
+	if err != nil {
+		return err
+	}
+
+	block := &pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: b,
+	}
+
+	pkg := NewEncoder(nil, pem.EncodeToMemory(block))
 
 	listener, err := net.Listen(network, addr)
 
@@ -61,7 +73,7 @@ func Listen(waitGroup *sync.WaitGroup) (err error) {
 				continue
 			}
 
-			go Handle(closeCtx, conn)
+			go Handle(closeCtx, conn, pkg)
 		}
 	}
 }
@@ -117,14 +129,13 @@ func Run() {
 
 	logger = sysLogger
 
-	key, pkg, err := GenerateKey()
+	key, err := rsa.GenerateKey(rand.Reader, 512)
 
 	if err != nil {
 		logger.Error("GenerateKey %v", err)
 	}
 
 	privateKey = key
-	handshakePkg = pkg
 
 	var waitGroup sync.WaitGroup
 
