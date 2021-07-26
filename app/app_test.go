@@ -8,6 +8,7 @@ import (
 	"net"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/vimcoders/go-driver"
 )
@@ -20,12 +21,16 @@ func TestMain(m *testing.M) {
 
 func TestLogin(t *testing.T) {
 	type Client struct {
-		Session
+		net.Conn
+		OnMessage        func(pkg driver.Message) (err error)
+		sender           *Encoder
+		reader           *Reader
+		PushMessageQuene chan driver.Message
 	}
 
 	var waitGroup sync.WaitGroup
 
-	for i := 0; i < 20000; i++ {
+	for i := 0; i < 2; i++ {
 		waitGroup.Add(1)
 
 		go t.Run(fmt.Sprintf("case %v", i), func(t *testing.T) {
@@ -38,12 +43,10 @@ func TestLogin(t *testing.T) {
 				return
 			}
 
-			var publicKey *rsa.PublicKey
-
 			var client Client
 
 			client.Conn = c
-			client.Buffer = NewBuffer()
+			client.reader = NewReader(c, NewBuffer())
 			client.PushMessageQuene = make(chan driver.Message, 1)
 			client.OnMessage = func(pkg driver.Message) (err error) {
 				b, err := pkg.ToBytes()
@@ -57,10 +60,8 @@ func TestLogin(t *testing.T) {
 				block, result := pem.Decode(b)
 
 				if len(result) > 0 {
-					coder := NewEncoder(publicKey, []byte("hello golang 1"))
-
-					if err := client.Push(coder); err != nil {
-						return err
+					if err = client.sender.Write(pkg); err != nil {
+						return
 					}
 
 					return nil
@@ -72,22 +73,37 @@ func TestLogin(t *testing.T) {
 					return err
 				}
 
-				publicKey = key.(*rsa.PublicKey)
+				publicKey := key.(*rsa.PublicKey)
+				client.sender = NewEncoder(c, NewBuffer(), publicKey)
 
-				coder := NewEncoder(publicKey, []byte("hello golang"))
-
-				if err := client.Push(coder); err != nil {
-					return err
+				if err = client.sender.Write(NewMessage([]byte("hello server !"))); err != nil {
+					return
 				}
 
 				return nil
 			}
 
-			if err := client.WaitMessage(); err != nil {
-				t.Errorf("WaitMessage %v", err)
-			}
+			defer func() {
+				if err := client.Close(); err != nil {
+					t.Errorf("close err %v", err)
+				}
+			}()
 
-			client.Close()
+			for {
+				pkg, err := client.reader.Read()
+
+				if err != nil {
+					t.Errorf("OnMessage %v", err)
+					return
+				}
+
+				if err := client.OnMessage(pkg); err != nil {
+					t.Errorf("OnMessage %v", err)
+					return
+				}
+
+				time.Sleep(time.Second)
+			}
 		})
 	}
 

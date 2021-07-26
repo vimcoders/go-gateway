@@ -4,8 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/x509"
-	"encoding/pem"
 	"errors"
 	"net"
 	"sync"
@@ -42,19 +40,6 @@ func Listen(waitGroup *sync.WaitGroup) (err error) {
 		waitGroup.Done()
 	}()
 
-	b, err := x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
-
-	if err != nil {
-		return err
-	}
-
-	block := &pem.Block{
-		Type:  "PUBLIC KEY",
-		Bytes: b,
-	}
-
-	pkg := NewEncoder(nil, pem.EncodeToMemory(block))
-
 	listener, err := net.Listen(network, addr)
 
 	if err != nil {
@@ -73,7 +58,7 @@ func Listen(waitGroup *sync.WaitGroup) (err error) {
 				continue
 			}
 
-			go Handle(closeCtx, conn, pkg)
+			go Handle(closeCtx, conn, privateKey)
 		}
 	}
 }
