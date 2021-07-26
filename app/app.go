@@ -94,27 +94,6 @@ func Monitor(waitGroup *sync.WaitGroup) (err error) {
 	return http.ListenAndServe(httpAddr, nil)
 }
 
-func GenerateKey() (*rsa.PrivateKey, driver.Message, error) {
-	key, err := rsa.GenerateKey(rand.Reader, 512)
-
-	if err != nil {
-		return nil, nil, err
-	}
-
-	b, err := x509.MarshalPKIXPublicKey(&key.PublicKey)
-
-	if err != nil {
-		return nil, nil, err
-	}
-
-	block := &pem.Block{
-		Type:  "PUBLIC KEY",
-		Bytes: b,
-	}
-
-	return key, NewEncoder(nil, pem.EncodeToMemory(block)), nil
-}
-
 func Run() {
 	closeCtx, closeFunc = context.WithCancel(context.Background())
 	defer closeFunc()

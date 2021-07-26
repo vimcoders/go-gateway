@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"time"
 
@@ -10,7 +11,7 @@ import (
 )
 
 const (
-	Version = 1
+	Version = 88
 )
 
 type Session struct {
@@ -72,21 +73,17 @@ func (s *Session) Push(pkg driver.Message) (err error) {
 		return err
 	}
 
-	length := len(b)
-
 	const header = 4
-
-	buffer := make([]byte, header)
-
-	buffer[0] = Version
-	buffer[1] = uint8(length >> 16)
-	buffer[2] = uint8(length >> 8)
-	buffer[3] = uint8(length)
+	length := len(b)
 
 	buf := s.Take(length + header)
 
-	copy(buf, buffer)
 	copy(buf[header:], b)
+
+	buf[0] = uint8(Version >> 8)
+	buf[1] = uint8(Version)
+	buf[2] = uint8(length >> 8)
+	buf[3] = uint8(length)
 
 	if err := s.SetDeadline(time.Now().Add(time.Millisecond * timeout)); err != nil {
 		return err
@@ -110,11 +107,14 @@ func (s *Session) Pull() (driver.Message, error) {
 		return nil, err
 	}
 
-	if buffer[0] != Version {
-		return nil, errors.New("unknow version")
+	version := int(uint32(buffer[0])<<8 | uint32(buffer[1]))
+
+	if version != Version {
+		return nil, errors.New(fmt.Sprintf("unknow version %v", version))
 	}
 
-	length := int(uint32(uint32(buffer[1])<<16 | uint32(buffer[2])<<8 | uint32(buffer[3])))
+	length := int(uint32(buffer[2])<<8 | uint32(buffer[3]))
+
 	const header = 4
 
 	return NewDecoder(privateKey, buffer[header:length+header]), nil
