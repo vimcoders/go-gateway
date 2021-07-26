@@ -23,8 +23,8 @@ func TestLogin(t *testing.T) {
 	type Client struct {
 		net.Conn
 		OnMessage        func(pkg driver.Message) (err error)
-		sender           *Encoder
-		reader           *Reader
+		w                *Encoder
+		r                *Reader
 		PushMessageQuene chan driver.Message
 	}
 
@@ -46,7 +46,7 @@ func TestLogin(t *testing.T) {
 			var client Client
 
 			client.Conn = c
-			client.reader = NewReader(c, NewBuffer())
+			client.r = NewReader(c, NewBuffer())
 			client.PushMessageQuene = make(chan driver.Message, 1)
 			client.OnMessage = func(pkg driver.Message) (err error) {
 				b, err := pkg.ToBytes()
@@ -60,7 +60,7 @@ func TestLogin(t *testing.T) {
 				block, result := pem.Decode(b)
 
 				if len(result) > 0 {
-					if err = client.sender.Write(pkg); err != nil {
+					if err = client.w.Write(pkg); err != nil {
 						return
 					}
 
@@ -74,9 +74,9 @@ func TestLogin(t *testing.T) {
 				}
 
 				publicKey := key.(*rsa.PublicKey)
-				client.sender = NewEncoder(c, NewBuffer(), publicKey)
+				client.w = NewEncoder(c, NewBuffer(), publicKey)
 
-				if err = client.sender.Write(NewMessage([]byte("hello server !"))); err != nil {
+				if err = client.w.Write(NewMessage([]byte("hello server !"))); err != nil {
 					return
 				}
 
@@ -90,7 +90,7 @@ func TestLogin(t *testing.T) {
 			}()
 
 			for {
-				pkg, err := client.reader.Read()
+				pkg, err := client.r.Read()
 
 				if err != nil {
 					t.Errorf("OnMessage %v", err)

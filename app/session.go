@@ -24,22 +24,6 @@ type Session struct {
 	OnMessage func(pkg driver.Message) (err error)
 }
 
-func (s *Session) WaitMessage() (err error) {
-	for {
-		pkg, err := s.r.Read()
-
-		if err != nil {
-			return err
-		}
-
-		if err := s.OnMessage(pkg); err != nil {
-			return err
-		}
-
-		time.Sleep(time.Second)
-	}
-}
-
 func (s *Session) SessionID() int64 {
 	return s.id
 }
