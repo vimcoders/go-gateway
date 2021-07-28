@@ -5,27 +5,20 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"io"
 	"net"
 	"time"
 
 	"github.com/vimcoders/go-driver"
 )
 
-const (
-	Version = 88
-)
-
 type Session struct {
-	net.Conn
-	id        int64
-	r         driver.Reader
-	w         driver.Writer
-	v         map[interface{}]interface{}
-	OnMessage func(pkg driver.Message) (err error)
-}
+	io.Closer
+	driver.Reader
+	driver.Writer
 
-func (s *Session) SessionID() int64 {
-	return s.id
+	OnMessage func(pkg driver.Message) (err error)
+	v         map[interface{}]interface{}
 }
 
 func (s *Session) Set(key, value interface{}) error {
@@ -40,20 +33,6 @@ func (s *Session) Get(key interface{}) interface{} {
 func (s *Session) Delete(key interface{}) error {
 	delete(s.v, key)
 	return nil
-}
-
-func (s *Session) Close() (err error) {
-	defer func() {
-		if e := recover(); e != nil {
-			logger.Error("session close %v", e)
-		}
-
-		if err != nil {
-			logger.Error("session close %v", err)
-		}
-	}()
-
-	return s.Conn.Close()
 }
 
 func Handle(ctx context.Context, c net.Conn, k *rsa.PrivateKey) (err error) {
@@ -79,10 +58,10 @@ func Handle(ctx context.Context, c net.Conn, k *rsa.PrivateKey) (err error) {
 	}
 
 	s := Session{
-		Conn: c,
-		r:    NewDecoder(c, NewBuffer(), privateKey),
-		w:    NewWriter(c, NewBuffer()),
-		v:    make(map[interface{}]interface{}),
+		Closer: c,
+		Reader: NewDecoder(c, NewBuffer(), privateKey),
+		Writer: NewWriter(c, NewBuffer()),
+		v:      make(map[interface{}]interface{}),
 	}
 
 	s.OnMessage = func(p driver.Message) (err error) {
@@ -95,7 +74,7 @@ func Handle(ctx context.Context, c net.Conn, k *rsa.PrivateKey) (err error) {
 
 		logger.Info("OnMessage %v..", string(b))
 
-		if err := s.w.Write(NewMessage([]byte("hello client !"))); err != nil {
+		if err := s.Writer.Write(NewMessage([]byte("hello client !"))); err != nil {
 			return err
 		}
 
@@ -106,12 +85,12 @@ func Handle(ctx context.Context, c net.Conn, k *rsa.PrivateKey) (err error) {
 
 	pkg := NewMessage(pem.EncodeToMemory(block))
 
-	if err := s.w.Write(pkg); err != nil {
+	if err := s.Writer.Write(pkg); err != nil {
 		return err
 	}
 
 	for {
-		p, err := s.r.Read()
+		p, err := s.Reader.Read()
 
 		if err != nil {
 			return err
