@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/vimcoders/go-driver"
+	"github.com/vimcoders/go-lib"
 )
 
 type Session struct {
@@ -59,8 +60,8 @@ func Handle(ctx context.Context, c net.Conn, k *rsa.PrivateKey) (err error) {
 
 	s := Session{
 		Closer: c,
-		Reader: NewDecoder(c, NewBuffer(), privateKey),
-		Writer: NewWriter(c, NewBuffer()),
+		Reader: lib.NewReader(c, lib.NewBuffer(), time.Second*5),
+		Writer: lib.NewWriter(c, lib.NewBuffer(), time.Second*5),
 		v:      make(map[interface{}]interface{}),
 	}
 
@@ -74,7 +75,7 @@ func Handle(ctx context.Context, c net.Conn, k *rsa.PrivateKey) (err error) {
 
 		logger.Info("OnMessage %v..", string(b))
 
-		if err := s.Writer.Write(NewMessage([]byte("hello client !"))); err != nil {
+		if err := s.Writer.Write(lib.NewMessage([]byte("hello client !"))); err != nil {
 			return err
 		}
 
@@ -83,7 +84,7 @@ func Handle(ctx context.Context, c net.Conn, k *rsa.PrivateKey) (err error) {
 
 	defer s.Close()
 
-	pkg := NewMessage(pem.EncodeToMemory(block))
+	pkg := lib.NewMessage(pem.EncodeToMemory(block))
 
 	if err := s.Writer.Write(pkg); err != nil {
 		return err
@@ -96,7 +97,15 @@ func Handle(ctx context.Context, c net.Conn, k *rsa.PrivateKey) (err error) {
 			return err
 		}
 
-		if err := s.OnMessage(p); err != nil {
+		b, err := p.ToBytes()
+
+		if err != nil {
+			return err
+		}
+
+		decoder := lib.NewDecoder(b, privateKey)
+
+		if err := s.OnMessage(decoder); err != nil {
 			return err
 		}
 

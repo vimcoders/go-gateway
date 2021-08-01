@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/vimcoders/go-driver"
+	"github.com/vimcoders/go-lib"
 )
 
 func TestMain(m *testing.M) {
@@ -21,6 +22,7 @@ func TestMain(m *testing.M) {
 
 func TestLogin(t *testing.T) {
 	type Client struct {
+		key *rsa.PublicKey
 		net.Conn
 		driver.Writer
 		driver.Reader
@@ -46,7 +48,8 @@ func TestLogin(t *testing.T) {
 			var client Client
 
 			client.Conn = c
-			client.Reader = NewReader(c, NewBuffer())
+			client.Reader = lib.NewReader(c, lib.NewBuffer(), time.Second*5)
+			client.Writer = lib.NewWriter(c, lib.NewBuffer(), time.Second*5)
 			client.PushMessageQuene = make(chan driver.Message, 1)
 			client.OnMessage = func(pkg driver.Message) (err error) {
 				b, err := pkg.ToBytes()
@@ -57,27 +60,19 @@ func TestLogin(t *testing.T) {
 
 				t.Logf("OnMessage %v", string(b))
 
-				block, result := pem.Decode(b)
-
-				if len(result) > 0 {
-					if err = client.Writer.Write(pkg); err != nil {
-						return
-					}
-
-					return nil
-				}
-
+				block, _ := pem.Decode(b)
 				key, err := x509.ParsePKIXPublicKey(block.Bytes)
 
 				if err != nil {
 					return err
 				}
 
-				publicKey := key.(*rsa.PublicKey)
-				client.Writer = NewEncoder(c, NewBuffer(), publicKey)
+				client.key = key.(*rsa.PublicKey)
 
-				if err = client.Writer.Write(NewMessage([]byte("hello server !"))); err != nil {
-					return
+				encoder := lib.NewEncoder([]byte("hello server !"), client.key)
+
+				if err = client.Writer.Write(encoder); err != nil {
+					return err
 				}
 
 				return nil
