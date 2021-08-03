@@ -1,17 +1,16 @@
 package app
 
 import (
+	"bufio"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"io"
 	"net"
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/vimcoders/go-driver"
-	"github.com/vimcoders/go-lib"
 )
 
 func TestMain(m *testing.M) {
@@ -23,11 +22,10 @@ func TestMain(m *testing.M) {
 func TestLogin(t *testing.T) {
 	type Client struct {
 		key *rsa.PublicKey
-		net.Conn
-		driver.Writer
-		driver.Reader
-		OnMessage        func(pkg driver.Message) (err error)
-		PushMessageQuene chan driver.Message
+		io.Closer
+		io.Writer
+		*Reader
+		OnMessage func(pkg []byte) (err error)
 	}
 
 	var waitGroup sync.WaitGroup
@@ -47,31 +45,27 @@ func TestLogin(t *testing.T) {
 
 			var client Client
 
-			client.Conn = c
-			client.Reader = lib.NewReader(c, lib.NewBuffer(), time.Second*5)
-			client.Writer = lib.NewWriter(c, lib.NewBuffer(), time.Second*5)
-			client.PushMessageQuene = make(chan driver.Message, 1)
-			client.OnMessage = func(pkg driver.Message) (err error) {
-				b, err := pkg.ToBytes()
+			client.Closer = c
+			client.Reader = &Reader{c, bufio.NewReaderSize(c, 512), time.Second * 5}
+			client.Writer = NewWriter(c)
+			client.OnMessage = func(b []byte) (err error) {
+				block, result := pem.Decode(b)
 
-				if err != nil {
-					return err
+				if len(result) > 0 {
+					t.Logf("result %v", string(result))
+					return
 				}
 
-				t.Logf("OnMessage %v", string(b))
-
-				block, _ := pem.Decode(b)
 				key, err := x509.ParsePKIXPublicKey(block.Bytes)
 
 				if err != nil {
 					return err
 				}
 
-				client.key = key.(*rsa.PublicKey)
+				publickey := key.(*rsa.PublicKey)
+				client.Writer = NewEncoder(c, publickey)
 
-				encoder := lib.NewEncoder([]byte("hello server !"), client.key)
-
-				if err = client.Writer.Write(encoder); err != nil {
+				if _, err = client.Writer.Write([]byte("hello server !")); err != nil {
 					return err
 				}
 
@@ -93,6 +87,11 @@ func TestLogin(t *testing.T) {
 				}
 
 				if err := client.OnMessage(pkg); err != nil {
+					t.Errorf("OnMessage %v", err)
+					return
+				}
+
+				if _, err := client.Reader.r.Discard(len(pkg)); err != nil {
 					t.Errorf("OnMessage %v", err)
 					return
 				}

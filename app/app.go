@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/vimcoders/go-driver"
-	"github.com/vimcoders/go-lib"
 
 	"net/http"
 	_ "net/http/pprof"
@@ -85,7 +84,7 @@ func Run() {
 
 	now := time.Now()
 
-	sysLogger, err := lib.NewSyslogger()
+	sysLogger, err := driver.NewSyslogger()
 
 	if err != nil {
 		panic(err)
