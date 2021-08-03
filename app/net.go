@@ -12,24 +12,24 @@ import (
 )
 
 type Writer struct {
-	c       net.Conn
-	b       *Buffer
-	timeout time.Duration
+	net.Conn
+	*Buffer
+	t time.Duration
 }
 
 func (w *Writer) Write(p []byte) (n int, err error) {
 	length := len(p)
 
-	buf := w.b.Take(length + 2)
+	buf := w.Take(length + 2)
 	buf[0] = uint8(length >> 8)
 	buf[1] = uint8(length)
 	copy(buf[2:], p)
 
-	if err := w.c.SetWriteDeadline(time.Now().Add(w.timeout)); err != nil {
+	if err := w.SetWriteDeadline(time.Now().Add(w.t)); err != nil {
 		return 0, err
 	}
 
-	return w.c.Write(buf)
+	return w.Conn.Write(buf)
 }
 
 func NewWriter(c net.Conn) io.Writer {
@@ -37,29 +37,29 @@ func NewWriter(c net.Conn) io.Writer {
 }
 
 type Reader struct {
-	c       net.Conn
-	r       *bufio.Reader
-	timeout time.Duration
+	net.Conn
+	*bufio.Reader
+	t time.Duration
 }
 
 func (r *Reader) Read() (p []byte, err error) {
 	header := make([]byte, 2)
 
-	if err := r.c.SetReadDeadline(time.Now().Add(r.timeout)); err != nil {
+	if err := r.SetReadDeadline(time.Now().Add(r.t)); err != nil {
 		return nil, err
 	}
 
-	if _, err := r.r.Read(header); err != nil {
+	if _, err := r.Reader.Read(header); err != nil {
 		return nil, err
 	}
 
 	length := uint16(uint16(header[0])<<8 | uint16(header[1]))
 
-	if err := r.c.SetReadDeadline(time.Now().Add(r.timeout)); err != nil {
+	if err := r.SetReadDeadline(time.Now().Add(r.t)); err != nil {
 		return nil, err
 	}
 
-	return r.r.Peek(int(length))
+	return r.Reader.Peek(int(length))
 }
 
 func NewReader(c net.Conn) driver.Reader {
@@ -67,7 +67,7 @@ func NewReader(c net.Conn) driver.Reader {
 }
 
 type Encoder struct {
-	w   *Writer
+	*Writer
 	key *rsa.PublicKey
 }
 
@@ -78,23 +78,23 @@ func (e *Encoder) Write(p []byte) (n int, err error) {
 		return 0, err
 	}
 
-	return e.w.Write(b)
+	return e.Writer.Write(b)
 }
 
 func NewEncoder(c net.Conn, k *rsa.PublicKey) io.Writer {
 	return &Encoder{
-		w:   &Writer{c, NewBuffer(), time.Second * 5},
-		key: k,
+		Writer: &Writer{c, NewBuffer(), time.Second * 5},
+		key:    k,
 	}
 }
 
 type Decoder struct {
-	r   *Reader
+	*Reader
 	key *rsa.PrivateKey
 }
 
 func (d *Decoder) Read() (p []byte, err error) {
-	b, err := d.r.Read()
+	b, err := d.Read()
 
 	if err != nil {
 		return nil, err
@@ -106,7 +106,7 @@ func (d *Decoder) Read() (p []byte, err error) {
 		return
 	}
 
-	if _, err := d.r.r.Discard(len(b)); err != nil {
+	if _, err := d.Discard(len(b)); err != nil {
 		return nil, err
 	}
 
@@ -115,8 +115,8 @@ func (d *Decoder) Read() (p []byte, err error) {
 
 func NewDecoder(c net.Conn, k *rsa.PrivateKey) *Decoder {
 	return &Decoder{
-		r:   &Reader{c, bufio.NewReaderSize(c, 512), time.Second * 5},
-		key: k,
+		Reader: &Reader{c, bufio.NewReaderSize(c, 512), time.Second * 5},
+		key:    k,
 	}
 }
 
