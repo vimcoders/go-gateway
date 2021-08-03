@@ -16,9 +16,7 @@ type Session struct {
 	io.Closer
 	io.Writer
 	driver.Reader
-
-	OnMessage func(pkg []byte) (err error)
-	v         map[interface{}]interface{}
+	v map[interface{}]interface{}
 }
 
 func (s *Session) Set(key, value interface{}) error {
@@ -32,6 +30,18 @@ func (s *Session) Get(key interface{}) interface{} {
 
 func (s *Session) Delete(key interface{}) error {
 	delete(s.v, key)
+	return nil
+}
+
+func (s *Session) OnMessage(p []byte) error {
+	logger.Info("OnMessage %v..", string(p))
+
+	if _, err := s.Writer.Write([]byte("hello client !")); err != nil {
+		return err
+	}
+
+	s.Close()
+
 	return nil
 }
 
@@ -62,18 +72,6 @@ func Handle(ctx context.Context, c net.Conn, k *rsa.PrivateKey) (err error) {
 		Writer: NewWriter(c),
 		Reader: NewDecoder(c, k),
 		v:      make(map[interface{}]interface{}),
-	}
-
-	s.OnMessage = func(p []byte) (err error) {
-		logger.Info("OnMessage %v..", string(p))
-
-		if _, err := s.Writer.Write([]byte("hello client !")); err != nil {
-			return err
-		}
-
-		s.Close()
-
-		return nil
 	}
 
 	defer s.Close()
