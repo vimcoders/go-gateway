@@ -15,8 +15,8 @@ import (
 
 type Session struct {
 	io.Closer
+	io.Writer
 	driver.Reader
-	driver.Writer
 
 	OnMessage func(pkg driver.Message) (err error)
 	v         map[interface{}]interface{}
