@@ -1,4 +1,4 @@
-package app
+package apk
 
 import (
 	"context"
@@ -16,13 +16,13 @@ import (
 )
 
 var (
-	logger     driver.Logger
-	closeFunc  context.CancelFunc
-	closeCtx   context.Context
-	addr       = ":8888"
-	httpAddr   = "localhost:8000"
-	network    = "tcp"
-	privateKey *rsa.PrivateKey
+	start               = time.Now()
+	logger, _           = driver.NewSyslogger()
+	addr                = ":8888"
+	httpAddr            = "localhost:8000"
+	network             = "tcp"
+	privateKey, _       = rsa.GenerateKey(rand.Reader, 512)
+	closeCtx, closeFunc = context.WithCancel(context.Background())
 )
 
 func Listen(waitGroup *sync.WaitGroup) (err error) {
@@ -78,19 +78,6 @@ func Monitor(waitGroup *sync.WaitGroup) (err error) {
 }
 
 func Run() (err error) {
-	closeCtx, closeFunc = context.WithCancel(context.Background())
-	defer closeFunc()
-
-	now := time.Now()
-
-	sysLogger, err := driver.NewSyslogger()
-
-	if err != nil {
-		panic(err)
-	}
-
-	logger = sysLogger
-
 	defer func() {
 		if e := recover(); e != nil {
 			logger.Error("Run Recover %v", e)
@@ -99,15 +86,9 @@ func Run() (err error) {
 		if err != nil {
 			logger.Error("Run Recover %v", err)
 		}
+
+		closeFunc()
 	}()
-
-	key, err := rsa.GenerateKey(rand.Reader, 512)
-
-	if err != nil {
-		return err
-	}
-
-	privateKey = key
 
 	var waitGroup sync.WaitGroup
 
@@ -117,7 +98,7 @@ func Run() (err error) {
 
 	go Monitor(&waitGroup)
 
-	logger.Info("Run Cost %v", time.Now().Sub(now))
+	logger.Info("Run Cost %v", time.Now().Sub(start))
 
 	waitGroup.Wait()
 

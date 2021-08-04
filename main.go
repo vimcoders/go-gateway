@@ -1,12 +1,7 @@
 package main
 
-import (
-	"runtime"
-
-	"github.com/vimcoders/go-gateway/app"
-)
+import "github.com/vimcoders/go-gateway/apk"
 
 func main() {
-	runtime.GOMAXPROCS(3)
-	app.Run()
+	apk.Run()
 }
