@@ -22,7 +22,6 @@ var (
 	addr       = ":8888"
 	httpAddr   = "localhost:8000"
 	network    = "tcp"
-	timeout    = time.Duration(50000)
 	privateKey *rsa.PrivateKey
 )
 

@@ -30,7 +30,7 @@ func TestLogin(t *testing.T) {
 
 	var waitGroup sync.WaitGroup
 
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 10000; i++ {
 		waitGroup.Add(1)
 
 		go t.Run(fmt.Sprintf("case %v", i), func(t *testing.T) {
@@ -47,25 +47,8 @@ func TestLogin(t *testing.T) {
 
 			client.Closer = c
 			client.Reader = &Reader{c, bufio.NewReaderSize(c, 512), time.Second * 5}
-			client.Writer = NewWriter(c)
 			client.OnMessage = func(b []byte) (err error) {
-				block, result := pem.Decode(b)
-
-				if len(result) > 0 {
-					t.Logf("result %v", string(result))
-					return
-				}
-
-				key, err := x509.ParsePKIXPublicKey(block.Bytes)
-
-				if err != nil {
-					return err
-				}
-
-				publickey := key.(*rsa.PublicKey)
-				client.Writer = NewEncoder(c, publickey)
-
-				if _, err = client.Writer.Write([]byte("hello server !")); err != nil {
+				if _, err = client.Write([]byte("hello server !")); err != nil {
 					return err
 				}
 
@@ -86,12 +69,26 @@ func TestLogin(t *testing.T) {
 					return
 				}
 
+				if client.Writer == nil {
+					block, _ := pem.Decode(pkg)
+
+					key, err := x509.ParsePKIXPublicKey(block.Bytes)
+
+					if err != nil {
+						t.Errorf("x509 %v", err)
+						return
+					}
+
+					publickey := key.(*rsa.PublicKey)
+					client.Writer = NewEncoder(c, publickey)
+				}
+
 				if err := client.OnMessage(pkg); err != nil {
 					t.Errorf("OnMessage %v", err)
 					return
 				}
 
-				if _, err := client.Reader.r.Discard(len(pkg)); err != nil {
+				if _, err := client.Discard(len(pkg)); err != nil {
 					t.Errorf("OnMessage %v", err)
 					return
 				}

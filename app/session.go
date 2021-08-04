@@ -8,14 +8,12 @@ import (
 	"io"
 	"net"
 	"time"
-
-	"github.com/vimcoders/go-driver"
 )
 
 type Session struct {
 	io.Closer
 	io.Writer
-	driver.Reader
+	*Decoder
 	v map[interface{}]interface{}
 }
 
@@ -39,8 +37,6 @@ func (s *Session) OnMessage(p []byte) error {
 	if _, err := s.Writer.Write([]byte("hello client !")); err != nil {
 		return err
 	}
-
-	s.Close()
 
 	return nil
 }
@@ -68,10 +64,10 @@ func Handle(ctx context.Context, c net.Conn, k *rsa.PrivateKey) (err error) {
 	}
 
 	s := Session{
-		Closer: c,
-		Writer: NewWriter(c),
-		Reader: NewDecoder(c, k),
-		v:      make(map[interface{}]interface{}),
+		Closer:  c,
+		Writer:  NewWriter(c),
+		Decoder: NewDecoder(c, k),
+		v:       make(map[interface{}]interface{}),
 	}
 
 	defer s.Close()
@@ -83,7 +79,7 @@ func Handle(ctx context.Context, c net.Conn, k *rsa.PrivateKey) (err error) {
 	}
 
 	for {
-		p, err := s.Reader.Read()
+		p, err := s.Decoder.Read()
 
 		if err != nil {
 			return err

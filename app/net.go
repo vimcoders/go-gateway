@@ -7,8 +7,6 @@ import (
 	"io"
 	"net"
 	"time"
-
-	"github.com/vimcoders/go-driver"
 )
 
 type Writer struct {
@@ -62,7 +60,7 @@ func (r *Reader) Read() (p []byte, err error) {
 	return r.Reader.Peek(int(length))
 }
 
-func NewReader(c net.Conn) driver.Reader {
+func NewReader(c net.Conn) *Reader {
 	return &Reader{c, bufio.NewReaderSize(c, 512), time.Second * 5}
 }
 
@@ -94,7 +92,7 @@ type Decoder struct {
 }
 
 func (d *Decoder) Read() (p []byte, err error) {
-	b, err := d.Read()
+	b, err := d.Reader.Read()
 
 	if err != nil {
 		return nil, err

@@ -1,2 +1,4 @@
 github.com/vimcoders/go-driver v0.0.0-20210803041512-98804f2857ff h1:BTrpn9FnxZRUCt55IlpMlPAVRvmhV1neZIIfZnqw6io=
 github.com/vimcoders/go-driver v0.0.0-20210803041512-98804f2857ff/go.mod h1:hSPH1puyyDGHuVVYk7KBzMPIfDIxCSsPttGFe2Elxuw=
+github.com/vimcoders/go-driver v0.0.0-20210804141207-954665cde5ed h1:OfDrRBtIMeUlvGvr4hfxkG87sRkSKmr95mwdtHE1tYI=
+github.com/vimcoders/go-driver v0.0.0-20210804141207-954665cde5ed/go.mod h1:hSPH1puyyDGHuVVYk7KBzMPIfDIxCSsPttGFe2Elxuw=
