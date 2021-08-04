@@ -72,9 +72,7 @@ func Handle(ctx context.Context, c net.Conn, k *rsa.PrivateKey) (err error) {
 
 	defer s.Close()
 
-	pkg := pem.EncodeToMemory(block)
-
-	if _, err := s.Write(pkg); err != nil {
+	if _, err := s.Write(pem.EncodeToMemory(block)); err != nil {
 		return err
 	}
 

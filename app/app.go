@@ -77,7 +77,7 @@ func Monitor(waitGroup *sync.WaitGroup) (err error) {
 	return http.ListenAndServe(httpAddr, nil)
 }
 
-func Run() {
+func Run() (err error) {
 	closeCtx, closeFunc = context.WithCancel(context.Background())
 	defer closeFunc()
 
@@ -91,10 +91,20 @@ func Run() {
 
 	logger = sysLogger
 
+	defer func() {
+		if e := recover(); e != nil {
+			logger.Error("Run Recover %v", e)
+		}
+
+		if err != nil {
+			logger.Error("Run Recover %v", err)
+		}
+	}()
+
 	key, err := rsa.GenerateKey(rand.Reader, 512)
 
 	if err != nil {
-		logger.Error("GenerateKey %v", err)
+		return err
 	}
 
 	privateKey = key
@@ -110,4 +120,6 @@ func Run() {
 	logger.Info("Run Cost %v", time.Now().Sub(now))
 
 	waitGroup.Wait()
+
+	return errors.New("shutdown!")
 }
