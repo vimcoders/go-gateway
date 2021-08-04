@@ -16,11 +16,12 @@ import (
 )
 
 var (
-	start               = time.Now()
+	addr     = ":8888"
+	httpAddr = "localhost:8000"
+	network  = "tcp"
+
+	standTime           = time.Now()
 	logger, _           = driver.NewSyslogger()
-	addr                = ":8888"
-	httpAddr            = "localhost:8000"
-	network             = "tcp"
 	privateKey, _       = rsa.GenerateKey(rand.Reader, 512)
 	closeCtx, closeFunc = context.WithCancel(context.Background())
 )
@@ -98,7 +99,7 @@ func Run() (err error) {
 
 	go Monitor(&waitGroup)
 
-	logger.Info("Run Cost %v", time.Now().Sub(start))
+	logger.Info("Run Cost %v", time.Now().Sub(standTime))
 
 	waitGroup.Wait()
 

@@ -7,13 +7,12 @@ import (
 	"encoding/pem"
 	"io"
 	"net"
-	"time"
 )
 
 type Session struct {
 	io.Closer
 	io.Writer
-	*Decoder
+	*Reader
 	v map[interface{}]interface{}
 }
 
@@ -64,10 +63,10 @@ func Handle(ctx context.Context, c net.Conn, k *rsa.PrivateKey) (err error) {
 	}
 
 	s := Session{
-		Closer:  c,
-		Writer:  NewWriter(c),
-		Decoder: NewDecoder(c, k),
-		v:       make(map[interface{}]interface{}),
+		Closer: c,
+		Writer: NewWriter(c),
+		Reader: NewReader(c),
+		v:      make(map[interface{}]interface{}),
 	}
 
 	defer s.Close()
@@ -77,7 +76,7 @@ func Handle(ctx context.Context, c net.Conn, k *rsa.PrivateKey) (err error) {
 	}
 
 	for {
-		p, err := s.Decoder.Read()
+		p, err := s.Reader.Read()
 
 		if err != nil {
 			return err
@@ -87,6 +86,8 @@ func Handle(ctx context.Context, c net.Conn, k *rsa.PrivateKey) (err error) {
 			return err
 		}
 
-		time.Sleep(time.Second)
+		if _, err := s.Discard(len(p)); err != nil {
+			return err
+		}
 	}
 }

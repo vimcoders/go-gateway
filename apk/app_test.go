@@ -1,7 +1,6 @@
 package apk
 
 import (
-	"bufio"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
@@ -10,7 +9,6 @@ import (
 	"net"
 	"sync"
 	"testing"
-	"time"
 )
 
 func TestMain(m *testing.M) {
@@ -46,7 +44,8 @@ func TestLogin(t *testing.T) {
 			var client Client
 
 			client.Closer = c
-			client.Reader = &Reader{c, bufio.NewReaderSize(c, 512), time.Second * 5}
+			client.Reader = NewReader(c)
+			client.Writer = NewWriter(c)
 			client.OnMessage = func(b []byte) (err error) {
 				if _, err = client.Write([]byte("hello server !")); err != nil {
 					return err
@@ -92,8 +91,6 @@ func TestLogin(t *testing.T) {
 					t.Errorf("OnMessage %v", err)
 					return
 				}
-
-				time.Sleep(time.Second)
 			}
 		})
 	}
