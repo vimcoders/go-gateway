@@ -47,12 +47,10 @@ func Listen(waitGroup *sync.WaitGroup) (err error) {
 		return err
 	}
 
-	block := &pem.Block{
+	pkg := pem.EncodeToMemory(&pem.Block{
 		Type:  "PUBLIC KEY",
 		Bytes: b,
-	}
-
-	pkg := pem.EncodeToMemory(block)
+	})
 
 	listener, err := net.Listen(network, addr)
 
