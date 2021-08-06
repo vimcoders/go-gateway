@@ -2,9 +2,6 @@ package apk
 
 import (
 	"context"
-	"crypto/rsa"
-	"crypto/x509"
-	"encoding/pem"
 	"io"
 	"net"
 )
@@ -40,7 +37,7 @@ func (s *Session) OnMessage(p []byte) error {
 	return nil
 }
 
-func Handle(ctx context.Context, c net.Conn, k *rsa.PrivateKey) (err error) {
+func Handle(ctx context.Context, c net.Conn, pkg []byte) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			logger.Error("Handle recover %v", e)
@@ -51,17 +48,6 @@ func Handle(ctx context.Context, c net.Conn, k *rsa.PrivateKey) (err error) {
 		}
 	}()
 
-	b, err := x509.MarshalPKIXPublicKey(&k.PublicKey)
-
-	if err != nil {
-		return err
-	}
-
-	block := &pem.Block{
-		Type:  "PUBLIC KEY",
-		Bytes: b,
-	}
-
 	s := Session{
 		Closer: c,
 		Writer: NewWriter(c),
@@ -71,7 +57,7 @@ func Handle(ctx context.Context, c net.Conn, k *rsa.PrivateKey) (err error) {
 
 	defer s.Close()
 
-	if _, err := s.Write(pem.EncodeToMemory(block)); err != nil {
+	if _, err := s.Write(pkg); err != nil {
 		return err
 	}
 
