@@ -14,11 +14,9 @@ import (
 )
 
 var (
-	addr     = ":8888"
-	httpAddr = "localhost:8000"
-	network  = "tcp"
-
-	moment              = time.Now()
+	addr                = ":8888"
+	httpAddr            = "localhost:8000"
+	network             = "tcp"
 	logger, _           = driver.NewSyslogger()
 	closeCtx, closeFunc = context.WithCancel(context.Background())
 )
@@ -76,6 +74,8 @@ func Monitor(waitGroup *sync.WaitGroup) (err error) {
 }
 
 func Run() (err error) {
+	now := time.Now()
+
 	defer func() {
 		if e := recover(); e != nil {
 			logger.Error("Run Recover %v", e)
@@ -96,7 +96,7 @@ func Run() (err error) {
 
 	go Monitor(&waitGroup)
 
-	logger.Info("Run Cost %v", time.Now().Sub(moment))
+	logger.Info("Run Cost %v", time.Now().Sub(now))
 
 	waitGroup.Wait()
 
