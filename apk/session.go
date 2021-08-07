@@ -37,7 +37,7 @@ func (s *Session) OnMessage(p []byte) error {
 	return nil
 }
 
-func Handle(ctx context.Context, c net.Conn, pkg []byte) (err error) {
+func Handle(ctx context.Context, c net.Conn) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			logger.Error("Handle recover %v", e)
@@ -57,12 +57,8 @@ func Handle(ctx context.Context, c net.Conn, pkg []byte) (err error) {
 
 	defer s.Close()
 
-	if _, err := s.Write(pkg); err != nil {
-		return err
-	}
-
 	for {
-		p, err := s.Reader.Read()
+		p, err := s.Read()
 
 		if err != nil {
 			return err
