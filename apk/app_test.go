@@ -58,7 +58,10 @@ func TestLogin(t *testing.T) {
 				}
 			}()
 
-			client.Writer.Write([]byte("hello server!!!"))
+			if _, err := client.Writer.Write([]byte("hello server!!!")); err != nil {
+				t.Errorf("Send %v", err)
+				return
+			}
 
 			for {
 				pkg, err := client.Reader.Read()
