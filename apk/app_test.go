@@ -2,8 +2,6 @@ package apk
 
 import (
 	"crypto/rsa"
-	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"io"
 	"net"
@@ -28,7 +26,7 @@ func TestLogin(t *testing.T) {
 
 	var waitGroup sync.WaitGroup
 
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 1; i++ {
 		waitGroup.Add(1)
 
 		go t.Run(fmt.Sprintf("case %v", i), func(t *testing.T) {
@@ -60,26 +58,14 @@ func TestLogin(t *testing.T) {
 				}
 			}()
 
+			client.Writer.Write([]byte("hello server!!!"))
+
 			for {
 				pkg, err := client.Reader.Read()
 
 				if err != nil {
 					t.Errorf("OnMessage %v", err)
 					return
-				}
-
-				if client.Writer == nil {
-					block, _ := pem.Decode(pkg)
-
-					key, err := x509.ParsePKIXPublicKey(block.Bytes)
-
-					if err != nil {
-						t.Errorf("x509 %v", err)
-						return
-					}
-
-					publickey := key.(*rsa.PublicKey)
-					client.Writer = NewEncoder(c, publickey)
 				}
 
 				if err := client.OnMessage(pkg); err != nil {

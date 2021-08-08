@@ -2,6 +2,7 @@ package apk
 
 import (
 	"bufio"
+	"bytes"
 	"io"
 	"net"
 	"time"
@@ -9,16 +10,12 @@ import (
 
 type Writer struct {
 	net.Conn
-	*bufio.Writer
+	*bytes.Buffer
 	t time.Duration
 }
 
 func (w *Writer) Write(p []byte) (n int, err error) {
-	defer func() {
-		if err := w.Writer.Flush(); err != nil {
-			logger.Error("writer %v", err)
-		}
-	}()
+	defer w.Reset()
 
 	length := len(p)
 
@@ -31,15 +28,19 @@ func (w *Writer) Write(p []byte) (n int, err error) {
 		return 0, err
 	}
 
-	if n, err := w.Writer.Write(header[:]); err != nil {
+	if n, err := w.Buffer.Write(header[:]); err != nil {
 		return n, err
 	}
 
-	return w.Writer.Write(p)
+	if n, err := w.Buffer.Write(p); err != nil {
+		return n, err
+	}
+
+	return w.Conn.Write(w.Buffer.Bytes())
 }
 
 func NewWriter(c net.Conn) io.Writer {
-	return &Writer{c, bufio.NewWriter(c), time.Second * 15}
+	return &Writer{c, bytes.NewBuffer(make([]byte, 256)), time.Second * 15}
 }
 
 type Reader struct {
