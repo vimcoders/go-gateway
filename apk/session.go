@@ -4,12 +4,14 @@ import (
 	"context"
 	"io"
 	"net"
+
+	"github.com/vimcoders/go-driver"
 )
 
 type Session struct {
 	io.Closer
 	io.Writer
-	*Reader
+	*driver.Reader
 	v map[interface{}]interface{}
 }
 
@@ -50,8 +52,8 @@ func Handle(ctx context.Context, c net.Conn) (err error) {
 
 	s := Session{
 		Closer: c,
-		Writer: NewWriter(c),
-		Reader: NewReader(c),
+		Writer: driver.NewWriter(c),
+		Reader: driver.NewReader(c),
 		v:      make(map[interface{}]interface{}),
 	}
 

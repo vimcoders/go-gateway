@@ -1,12 +1,13 @@
 package apk
 
 import (
-	"crypto/rsa"
 	"fmt"
 	"io"
 	"net"
 	"sync"
 	"testing"
+
+	"github.com/vimcoders/go-driver"
 )
 
 func TestMain(m *testing.M) {
@@ -17,10 +18,9 @@ func TestMain(m *testing.M) {
 
 func TestLogin(t *testing.T) {
 	type Client struct {
-		key *rsa.PublicKey
 		io.Closer
 		io.Writer
-		*Reader
+		*driver.Reader
 		OnMessage func(pkg []byte) (err error)
 	}
 
@@ -42,8 +42,8 @@ func TestLogin(t *testing.T) {
 			var client Client
 
 			client.Closer = c
-			client.Reader = NewReader(c)
-			client.Writer = NewWriter(c)
+			client.Reader = driver.NewReader(c)
+			client.Writer = driver.NewWriter(c)
 			client.OnMessage = func(b []byte) (err error) {
 				if _, err = client.Write([]byte("hello server !")); err != nil {
 					return err
