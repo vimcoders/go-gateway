@@ -1,9 +1,12 @@
 package apk
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"io"
 	"net"
+	"time"
 
 	"github.com/vimcoders/go-driver"
 )
@@ -11,7 +14,7 @@ import (
 type Session struct {
 	io.Closer
 	io.Writer
-	*driver.Reader
+	driver.Reader
 	v map[interface{}]interface{}
 }
 
@@ -52,8 +55,8 @@ func Handle(ctx context.Context, c net.Conn) (err error) {
 
 	s := Session{
 		Closer: c,
-		Writer: driver.NewWriter(c),
-		Reader: driver.NewReader(c),
+		Writer: driver.NewWriter(c, bytes.NewBuffer(make([]byte, 1024)), time.Second*15),
+		Reader: driver.NewReader(c, bufio.NewReaderSize(c, 256), time.Second*15),
 		v:      make(map[interface{}]interface{}),
 	}
 

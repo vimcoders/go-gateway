@@ -1,11 +1,14 @@
 package apk
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"net"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/vimcoders/go-driver"
 )
@@ -20,7 +23,7 @@ func TestLogin(t *testing.T) {
 	type Client struct {
 		io.Closer
 		io.Writer
-		*driver.Reader
+		driver.Reader
 		OnMessage func(pkg []byte) (err error)
 	}
 
@@ -42,8 +45,8 @@ func TestLogin(t *testing.T) {
 			var client Client
 
 			client.Closer = c
-			client.Reader = driver.NewReader(c)
-			client.Writer = driver.NewWriter(c)
+			client.Reader = driver.NewReader(c, bufio.NewReaderSize(c, 256), time.Second*15)
+			client.Writer = driver.NewWriter(c, bytes.NewBuffer(make([]byte, 1024)), time.Second*15)
 			client.OnMessage = func(b []byte) (err error) {
 				if _, err = client.Write([]byte("hello server !")); err != nil {
 					return err
