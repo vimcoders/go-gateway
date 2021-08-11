@@ -2,6 +2,8 @@ package bot
 
 import (
 	"fmt"
+	"net"
+	"sync"
 	"testing"
 )
 
@@ -11,5 +13,80 @@ func TestMain(m *testing.M) {
 	fmt.Println("end")
 }
 
-func TestNewBot(t *testing.T) {
+func TestLogin(t *testing.T) {
+	var waitGroup sync.WaitGroup
+
+	for i := 0; i < 1000; i++ {
+		waitGroup.Add(1)
+
+		go func() {
+			defer waitGroup.Done()
+
+			c, err := net.Dial("tcp", ":8888")
+
+			if err != nil {
+				return
+			}
+
+			bot := NewBot(c)
+
+			if err := bot.Login(); err != nil {
+				return
+			}
+
+			for {
+				pkg, err := bot.Read()
+
+				if err != nil {
+					continue
+				}
+
+				if err := bot.Login(); err != nil {
+					continue
+				}
+
+				if _, err := bot.Discard(len(pkg)); err != nil {
+					continue
+				}
+			}
+		}()
+	}
+}
+
+func TestRegister(t *testing.T) {
+	var waitGroup sync.WaitGroup
+
+	for i := 0; i < 1000; i++ {
+		go func() {
+			defer waitGroup.Done()
+
+			c, err := net.Dial("tcp", ":8888")
+
+			if err != nil {
+				return
+			}
+
+			bot := NewBot(c)
+
+			if err := bot.Register(); err != nil {
+				return
+			}
+
+			for {
+				pkg, err := bot.Read()
+
+				if err != nil {
+					continue
+				}
+
+				if err := bot.Register(); err != nil {
+					continue
+				}
+
+				if _, err := bot.Discard(len(pkg)); err != nil {
+					continue
+				}
+			}
+		}()
+	}
 }

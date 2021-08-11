@@ -18,6 +18,18 @@ type Bot struct {
 }
 
 func (b *Bot) Login() error {
+	if _, err := b.Write([]byte("login")); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (b *Bot) Register() error {
+	if _, err := b.Write([]byte("login")); err != nil {
+		return err
+	}
+
 	return nil
 }
 
