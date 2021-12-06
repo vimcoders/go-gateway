@@ -42,6 +42,8 @@ func TestLogin(t *testing.T) {
 			var client Client
 
 			client.Conn = c
+			client.Reader = bufio.NewReader(c)
+			client.Buffer = bytes.NewBuffer(make([]byte, 512))
 			client.OnMessage = func(b []byte) (err error) {
 				if _, err = client.Write([]byte("hello server !")); err != nil {
 					return err
@@ -50,6 +52,8 @@ func TestLogin(t *testing.T) {
 				return nil
 			}
 			client.Write = func(b []byte) (n int, err error) {
+				defer client.Buffer.Reset()
+
 				length := len(b)
 
 				var header [2]byte

@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"net"
-	"time"
 )
 
 type Session struct {
@@ -70,8 +69,10 @@ func Handle(ctx context.Context, c net.Conn) (err error) {
 	}()
 
 	s := Session{
-		Conn: c,
-		v:    make(map[interface{}]interface{}),
+		Conn:   c,
+		Reader: bufio.NewReader(c),
+		Buffer: bytes.NewBuffer(make([]byte, 512)),
+		v:      make(map[interface{}]interface{}),
 	}
 
 	defer s.Close()
@@ -84,10 +85,6 @@ func Handle(ctx context.Context, c net.Conn) (err error) {
 		}
 
 		length := uint16(uint16(header[0])<<8 | uint16(header[1]))
-
-		if err := s.SetReadDeadline(time.Now().Add(time.Duration(10))); err != nil {
-			return err
-		}
 
 		b, err := s.Reader.Peek(int(length))
 
