@@ -4,17 +4,14 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"io"
 	"net"
 	"time"
-
-	"github.com/vimcoders/go-driver"
 )
 
 type Session struct {
-	io.Closer
-	io.Writer
-	driver.Reader
+	net.Conn
+	*bytes.Buffer
+	*bufio.Reader
 	v map[interface{}]interface{}
 }
 
@@ -35,11 +32,30 @@ func (s *Session) Delete(key interface{}) error {
 func (s *Session) OnMessage(p []byte) error {
 	logger.Info("OnMessage %v..", string(p))
 
-	if _, err := s.Writer.Write([]byte("hello client !")); err != nil {
+	if _, err := s.Write([]byte("hello client !")); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (s *Session) Write(b []byte) (n int, err error) {
+	length := len(b)
+
+	var header [2]byte
+
+	header[0] = uint8(length >> 8)
+	header[1] = uint8(length)
+
+	if _, err := s.Buffer.Write(header[:]); err != nil {
+		return 0, err
+	}
+
+	if _, err := s.Buffer.Write(b); err != nil {
+		return 0, err
+	}
+
+	return s.Conn.Write(s.Buffer.Bytes())
 }
 
 func Handle(ctx context.Context, c net.Conn) (err error) {
@@ -54,26 +70,36 @@ func Handle(ctx context.Context, c net.Conn) (err error) {
 	}()
 
 	s := Session{
-		Closer: c,
-		Writer: driver.NewWriter(c, bytes.NewBuffer(make([]byte, 1024)), time.Second*15),
-		Reader: driver.NewReader(c, bufio.NewReaderSize(c, 256), time.Second*15),
-		v:      make(map[interface{}]interface{}),
+		Conn: c,
+		v:    make(map[interface{}]interface{}),
 	}
 
 	defer s.Close()
 
+	header := make([]byte, 2)
+
 	for {
-		p, err := s.Read()
+		if _, err := s.Reader.Read(header); err != nil {
+			return err
+		}
+
+		length := uint16(uint16(header[0])<<8 | uint16(header[1]))
+
+		if err := s.SetReadDeadline(time.Now().Add(time.Duration(10))); err != nil {
+			return err
+		}
+
+		b, err := s.Reader.Peek(int(length))
 
 		if err != nil {
 			return err
 		}
 
-		if err := s.OnMessage(p); err != nil {
+		if err := s.OnMessage(b); err != nil {
 			return err
 		}
 
-		if _, err := s.Discard(len(p)); err != nil {
+		if _, err := s.Discard(len(b)); err != nil {
 			return err
 		}
 	}
