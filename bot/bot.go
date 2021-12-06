@@ -3,22 +3,17 @@ package bot
 import (
 	"bufio"
 	"bytes"
-	"io"
 	"net"
-	"time"
-
-	"github.com/vimcoders/go-driver"
 )
 
 type Bot struct {
-	io.Closer
-	io.Writer
-	driver.Reader
-	OnMessage func(pkg []byte) (err error)
+	c net.Conn
+	*bufio.Reader
+	*bytes.Buffer
 }
 
 func (b *Bot) Login() error {
-	if _, err := b.Write([]byte("login")); err != nil {
+	if _, err := b.c.Write([]byte("login")); err != nil {
 		return err
 	}
 
@@ -33,12 +28,20 @@ func (b *Bot) Register() error {
 	return nil
 }
 
-func NewBot(c net.Conn) *Bot {
-	var bot Bot
+func NewBot() *Bot {
+	c, err := net.Dial("tcp", ":8888")
 
-	bot.Closer = c
-	bot.Reader = driver.NewReader(c, bufio.NewReaderSize(c, 1024), time.Second*15)
-	bot.Writer = driver.NewWriter(c, bytes.NewBuffer(make([]byte, 256)), time.Second*15)
+	if err != nil {
+		return nil
+	}
 
-	return &bot
+	return &Bot{c: c}
+}
+
+func (b *Bot) Read() (pkg []byte, err error) {
+	return nil, nil
+}
+
+func (b *Bot) Write(pkg []byte) (n int, err error) {
+	return 0, nil
 }

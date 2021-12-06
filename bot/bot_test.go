@@ -2,7 +2,6 @@ package bot
 
 import (
 	"fmt"
-	"net"
 	"sync"
 	"testing"
 )
@@ -22,13 +21,7 @@ func TestLogin(t *testing.T) {
 		go func() {
 			defer waitGroup.Done()
 
-			c, err := net.Dial("tcp", ":8888")
-
-			if err != nil {
-				return
-			}
-
-			bot := NewBot(c)
+			bot := NewBot()
 
 			if err := bot.Login(); err != nil {
 				return
@@ -60,13 +53,7 @@ func TestRegister(t *testing.T) {
 		go func() {
 			defer waitGroup.Done()
 
-			c, err := net.Dial("tcp", ":8888")
-
-			if err != nil {
-				return
-			}
-
-			bot := NewBot(c)
+			bot := NewBot()
 
 			if err := bot.Register(); err != nil {
 				return
