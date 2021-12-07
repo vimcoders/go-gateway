@@ -11,20 +11,17 @@ type Session struct {
 	net.Conn
 	*bytes.Buffer
 	*bufio.Reader
-	v map[interface{}]interface{}
 }
 
 func (s *Session) Set(key, value interface{}) error {
-	s.v[key] = value
 	return nil
 }
 
 func (s *Session) Get(key interface{}) interface{} {
-	return s.v[key]
+	return nil
 }
 
 func (s *Session) Delete(key interface{}) error {
-	delete(s.v, key)
 	return nil
 }
 
@@ -39,6 +36,8 @@ func (s *Session) OnMessage(p []byte) error {
 }
 
 func (s *Session) Write(b []byte) (n int, err error) {
+	defer s.Buffer.Reset()
+
 	length := len(b)
 
 	var header [2]byte
@@ -72,7 +71,6 @@ func Handle(ctx context.Context, c net.Conn) (err error) {
 		Conn:   c,
 		Reader: bufio.NewReader(c),
 		Buffer: bytes.NewBuffer(make([]byte, 512)),
-		v:      make(map[interface{}]interface{}),
 	}
 
 	defer s.Close()
