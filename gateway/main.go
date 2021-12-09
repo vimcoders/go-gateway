@@ -8,14 +8,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vimcoders/go-driver"
+	"github.com/vimcoders/go-gateway/gateway/log"
+	"github.com/vimcoders/go-gateway/gateway/session"
 )
 
 var (
 	addr                = ":8888"
 	httpAddr            = "localhost:8000"
 	network             = "tcp"
-	logger, _           = driver.NewSyslogger()
 	closeCtx, closeFunc = context.WithCancel(context.Background())
 )
 
@@ -28,11 +28,11 @@ func Run() (err error) {
 
 	defer func() {
 		if e := recover(); e != nil {
-			logger.Error("Run Recover %v", e)
+			log.Error("Run Recover %v", e)
 		}
 
 		if err != nil {
-			logger.Error("Run Recover %v", err)
+			log.Error("Run Recover %v", err)
 		}
 
 		closeFunc()
@@ -46,7 +46,7 @@ func Run() (err error) {
 
 	go Monitor(&waitGroup)
 
-	logger.Info("Run Cost %v", time.Now().Sub(now))
+	log.Info("Run Cost %v", time.Now().Sub(now))
 
 	waitGroup.Wait()
 
@@ -56,11 +56,11 @@ func Run() (err error) {
 func Listen(waitGroup *sync.WaitGroup) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
-			logger.Error("Listen %v", e)
+			log.Error("Listen %v", e)
 		}
 
 		if err != nil {
-			logger.Error("Listen %v", err)
+			log.Error("Listen %v", err)
 		}
 
 		waitGroup.Done()
@@ -80,11 +80,11 @@ func Listen(waitGroup *sync.WaitGroup) (err error) {
 			conn, err := listener.Accept()
 
 			if err != nil {
-				logger.Error("Listen %v", err.Error())
+				log.Error("Listen %v", err.Error())
 				continue
 			}
 
-			go Handle(closeCtx, conn)
+			go session.Handle(closeCtx, conn)
 		}
 	}
 }
@@ -92,11 +92,11 @@ func Listen(waitGroup *sync.WaitGroup) (err error) {
 func Monitor(waitGroup *sync.WaitGroup) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
-			logger.Error("Listen %v", e)
+			log.Error("Listen %v", e)
 		}
 
 		if err != nil {
-			logger.Error("Listen %v", err)
+			log.Error("Listen %v", err)
 		}
 
 		waitGroup.Done()
