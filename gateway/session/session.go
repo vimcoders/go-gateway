@@ -5,9 +5,12 @@ import (
 	"bytes"
 	"context"
 	"net"
+	"time"
 
 	"github.com/vimcoders/go-gateway/gateway/log"
 )
+
+var timeout = time.Second * 15
 
 type Session struct {
 	net.Conn
@@ -55,6 +58,10 @@ func (s *Session) Write(b []byte) (n int, err error) {
 		return 0, err
 	}
 
+	if err := s.Conn.SetWriteDeadline(time.Now().Add(timeout)); err != nil {
+		return 0, err
+	}
+
 	return s.Conn.Write(s.Buffer.Bytes())
 }
 
@@ -80,11 +87,19 @@ func Handle(ctx context.Context, c net.Conn) (err error) {
 	header := make([]byte, 2)
 
 	for {
+		if err := s.Conn.SetReadDeadline(time.Now().Add(timeout)); err != nil {
+			return err
+		}
+
 		if _, err := s.Reader.Read(header); err != nil {
 			return err
 		}
 
 		length := uint16(uint16(header[0])<<8 | uint16(header[1]))
+
+		if err := s.Conn.SetReadDeadline(time.Now().Add(timeout)); err != nil {
+			return err
+		}
 
 		b, err := s.Reader.Peek(int(length))
 
