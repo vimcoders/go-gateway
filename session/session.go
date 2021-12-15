@@ -7,7 +7,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/vimcoders/go-gateway/gateway/log"
+	"github.com/vimcoders/go-gateway/log"
 )
 
 var timeout = time.Second * 15

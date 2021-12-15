@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vimcoders/go-gateway/gateway/log"
-	"github.com/vimcoders/go-gateway/gateway/session"
+	"github.com/vimcoders/go-gateway/log"
+	"github.com/vimcoders/go-gateway/session"
 )
 
 var (
