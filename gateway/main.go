@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	_ "github.com/vimcoders/go-gateway/connector"
 	"github.com/vimcoders/go-gateway/log"
 	"github.com/vimcoders/go-gateway/session"
 )
