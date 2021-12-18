@@ -19,6 +19,8 @@ github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/tidwall/pretty v1.0.0/go.mod h1:XNkn88O1ChpSDQmQeStsy+sBenx6DDtFZJxhVysOjyk=
 github.com/vimcoders/go-driver v0.0.0-20211205103709-a1a8768f5105 h1:H4TFK5RrLzOt4CHZOULUgVPnL3lklNaw1JgYGzbM+rE=
 github.com/vimcoders/go-driver v0.0.0-20211205103709-a1a8768f5105/go.mod h1:hSPH1puyyDGHuVVYk7KBzMPIfDIxCSsPttGFe2Elxuw=
+github.com/vimcoders/sqlx-go-driver v0.0.0-20210709144116-c76b2895a6f2 h1:uIZxIB8tXiBmg15yZZ9kFtfm//D0M5/4/6l6sS9eOh8=
+github.com/vimcoders/sqlx-go-driver v0.0.0-20210709144116-c76b2895a6f2/go.mod h1:WOhaF+7ud2Hotrp8BH8h+USNhkjVqqtIPsEAyWjbGl4=
 github.com/xdg-go/pbkdf2 v1.0.0 h1:Su7DPu48wXMwC3bs7MCNG+z4FhcyEuz5dlvchbq0B0c=
 github.com/xdg-go/pbkdf2 v1.0.0/go.mod h1:jrpuAogTd400dnrH08LKmI/xc1MbPOebTwRqcT5RDeI=
 github.com/xdg-go/scram v1.0.2 h1:akYIkZ28e6A96dkWNJQu3nmCzH3YfwMPQExUYDaRv7w=

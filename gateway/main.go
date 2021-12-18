@@ -11,6 +11,7 @@ import (
 	"github.com/vimcoders/go-gateway/log"
 	_ "github.com/vimcoders/go-gateway/mongo"
 	"github.com/vimcoders/go-gateway/session"
+	_ "github.com/vimcoders/go-gateway/sqlx"
 )
 
 var (
