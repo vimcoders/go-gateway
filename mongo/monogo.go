@@ -1,4 +1,4 @@
-package connector
+package monogo
 
 import (
 	"context"
@@ -7,6 +7,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+var Cli *mongo.Client
 
 func init() {
 	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017")
@@ -23,4 +25,6 @@ func init() {
 		log.Error("err %v", err)
 		return
 	}
+
+	Cli = mgoCli
 }
