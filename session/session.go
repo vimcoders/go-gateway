@@ -4,13 +4,24 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"net"
 	"time"
 
 	"github.com/vimcoders/go-gateway/log"
 )
 
+var (
+	addr                = ":8888"
+	network             = "tcp"
+	closeCtx, closeFunc = context.WithCancel(context.Background())
+)
+
 var timeout = time.Second * 15
+
+func init() {
+	go Listen()
+}
 
 type Session struct {
 	net.Conn
@@ -65,7 +76,7 @@ func (s *Session) Write(b []byte) (n int, err error) {
 	return s.Conn.Write(s.Buffer.Bytes())
 }
 
-func Handle(ctx context.Context, c net.Conn) (err error) {
+func handle(ctx context.Context, c net.Conn) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			log.Error("Handle recover %v", e)
@@ -113,6 +124,40 @@ func Handle(ctx context.Context, c net.Conn) (err error) {
 
 		if _, err := s.Discard(len(b)); err != nil {
 			return err
+		}
+	}
+}
+
+func Listen() (err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			log.Error("Listen %v", e)
+		}
+
+		if err != nil {
+			log.Error("Listen %v", err)
+		}
+	}()
+
+	listener, err := net.Listen(network, addr)
+
+	if err != nil {
+		return err
+	}
+
+	for {
+		select {
+		case <-closeCtx.Done():
+			return errors.New("shutdown")
+		default:
+			conn, err := listener.Accept()
+
+			if err != nil {
+				log.Error("Listen %v", err.Error())
+				continue
+			}
+
+			go handle(closeCtx, conn)
 		}
 	}
 }
