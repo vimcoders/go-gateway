@@ -9,15 +9,8 @@ import (
 	"time"
 
 	"github.com/vimcoders/go-gateway/log"
+	"github.com/vimcoders/go-gateway/opt"
 )
-
-var (
-	addr                = ":8888"
-	network             = "tcp"
-	closeCtx, closeFunc = context.WithCancel(context.Background())
-)
-
-var timeout = time.Second * 15
 
 func init() {
 	go Listen()
@@ -69,7 +62,7 @@ func (s *Session) Write(b []byte) (n int, err error) {
 		return 0, err
 	}
 
-	if err := s.Conn.SetWriteDeadline(time.Now().Add(timeout)); err != nil {
+	if err := s.Conn.SetWriteDeadline(time.Now().Add(opt.Timeout)); err != nil {
 		return 0, err
 	}
 
@@ -98,7 +91,7 @@ func handle(ctx context.Context, c net.Conn) (err error) {
 	header := make([]byte, 2)
 
 	for {
-		if err := s.Conn.SetReadDeadline(time.Now().Add(timeout)); err != nil {
+		if err := s.Conn.SetReadDeadline(time.Now().Add(opt.Timeout)); err != nil {
 			return err
 		}
 
@@ -108,7 +101,7 @@ func handle(ctx context.Context, c net.Conn) (err error) {
 
 		length := uint16(uint16(header[0])<<8 | uint16(header[1]))
 
-		if err := s.Conn.SetReadDeadline(time.Now().Add(timeout)); err != nil {
+		if err := s.Conn.SetReadDeadline(time.Now().Add(opt.Timeout)); err != nil {
 			return err
 		}
 
@@ -139,7 +132,7 @@ func Listen() (err error) {
 		}
 	}()
 
-	listener, err := net.Listen(network, addr)
+	listener, err := net.Listen("tcp", opt.Addr)
 
 	if err != nil {
 		return err
@@ -147,7 +140,7 @@ func Listen() (err error) {
 
 	for {
 		select {
-		case <-closeCtx.Done():
+		case <-opt.CloseCtx.Done():
 			return errors.New("shutdown")
 		default:
 			conn, err := listener.Accept()
@@ -157,7 +150,7 @@ func Listen() (err error) {
 				continue
 			}
 
-			go handle(closeCtx, conn)
+			go handle(opt.CloseCtx, conn)
 		}
 	}
 }
