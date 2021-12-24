@@ -13,10 +13,7 @@ import (
 )
 
 func Init(wg *sync.WaitGroup) {
-}
-
-func init() {
-	go Listen()
+	go Listen(wg)
 }
 
 type Session struct {
@@ -127,7 +124,7 @@ func handle(ctx context.Context, c net.Conn) (err error) {
 	}
 }
 
-func Listen() (err error) {
+func Listen(wg *sync.WaitGroup) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			log.Error("Listen %v", e)
@@ -136,6 +133,8 @@ func Listen() (err error) {
 		if err != nil {
 			log.Error("Listen %v", err)
 		}
+
+		wg.Done()
 	}()
 
 	addr := lib.Addr()

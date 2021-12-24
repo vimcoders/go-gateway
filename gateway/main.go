@@ -28,16 +28,16 @@ func Run() (err error) {
 		}
 	}()
 
-	var waitGroup sync.WaitGroup
+	var wg sync.WaitGroup
 
-	waitGroup.Add(3)
-	mongox.Init(&waitGroup)
-	sqlx.Init(&waitGroup)
-	session.Init(&waitGroup)
+	wg.Add(3)
+	mongox.Init(&wg)
+	sqlx.Init(&wg)
+	session.Init(&wg)
 
 	log.Info("Run Cost %v", time.Now().Sub(now))
 
-	waitGroup.Wait()
+	wg.Wait()
 
 	return errors.New("shutdown!")
 }
