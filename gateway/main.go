@@ -2,18 +2,13 @@ package main
 
 import (
 	"errors"
-	"net/http"
 	"sync"
 	"time"
 
 	"github.com/vimcoders/go-gateway/log"
-	//_ "github.com/vimcoders/go-gateway/mongo"
-	_ "github.com/vimcoders/go-gateway/session"
-	//_ "github.com/vimcoders/go-gateway/sqlx"
-)
-
-var (
-	httpAddr = "localhost:8000"
+	mongo "github.com/vimcoders/go-gateway/mongo"
+	"github.com/vimcoders/go-gateway/session"
+	"github.com/vimcoders/go-gateway/sqlx"
 )
 
 func main() {
@@ -35,29 +30,14 @@ func Run() (err error) {
 
 	var waitGroup sync.WaitGroup
 
-	waitGroup.Add(1)
-
-	go Monitor(&waitGroup)
+	waitGroup.Add(3)
+	mongo.Init(&waitGroup)
+	sqlx.Init(&waitGroup)
+	session.Init(&waitGroup)
 
 	log.Info("Run Cost %v", time.Now().Sub(now))
 
 	waitGroup.Wait()
 
 	return errors.New("shutdown!")
-}
-
-func Monitor(waitGroup *sync.WaitGroup) (err error) {
-	defer func() {
-		if e := recover(); e != nil {
-			log.Error("Listen %v", e)
-		}
-
-		if err != nil {
-			log.Error("Listen %v", err)
-		}
-
-		waitGroup.Done()
-	}()
-
-	return http.ListenAndServe(httpAddr, nil)
 }
