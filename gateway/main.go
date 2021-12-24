@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/vimcoders/go-gateway/log"
-	mongo "github.com/vimcoders/go-gateway/mongo"
+	"github.com/vimcoders/go-gateway/mongox"
 	"github.com/vimcoders/go-gateway/session"
 	"github.com/vimcoders/go-gateway/sqlx"
 )
@@ -31,7 +31,7 @@ func Run() (err error) {
 	var waitGroup sync.WaitGroup
 
 	waitGroup.Add(3)
-	mongo.Init(&waitGroup)
+	mongox.Init(&waitGroup)
 	sqlx.Init(&waitGroup)
 	session.Init(&waitGroup)
 
