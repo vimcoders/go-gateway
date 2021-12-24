@@ -28,4 +28,5 @@ var Cli *mongo.Client
 //}
 
 func Init(wg *sync.WaitGroup) {
+	defer wg.Done()
 }

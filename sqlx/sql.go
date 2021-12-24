@@ -19,4 +19,5 @@ var connector driver.Connector
 //}
 
 func Init(wg *sync.WaitGroup) {
+	defer wg.Done()
 }

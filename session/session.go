@@ -13,7 +13,45 @@ import (
 )
 
 func Init(wg *sync.WaitGroup) {
-	go Listen(wg)
+	go listen(wg)
+}
+
+func listen(wg *sync.WaitGroup) (err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			log.Error("Listen %v", e)
+		}
+
+		if err != nil {
+			log.Error("Listen %v", err)
+		}
+
+		wg.Done()
+	}()
+
+	addr := lib.Addr()
+	closeCtx, _ := lib.Context()
+	listener, err := net.Listen("tcp", addr)
+
+	if err != nil {
+		return err
+	}
+
+	for {
+		select {
+		case <-closeCtx.Done():
+			return errors.New("shutdown")
+		default:
+			conn, err := listener.Accept()
+
+			if err != nil {
+				log.Error("Listen %v", err.Error())
+				continue
+			}
+
+			go handle(closeCtx, conn)
+		}
+	}
 }
 
 type Session struct {
@@ -120,44 +158,6 @@ func handle(ctx context.Context, c net.Conn) (err error) {
 
 		if _, err := s.Discard(len(b)); err != nil {
 			return err
-		}
-	}
-}
-
-func Listen(wg *sync.WaitGroup) (err error) {
-	defer func() {
-		if e := recover(); e != nil {
-			log.Error("Listen %v", e)
-		}
-
-		if err != nil {
-			log.Error("Listen %v", err)
-		}
-
-		wg.Done()
-	}()
-
-	addr := lib.Addr()
-	closeCtx, _ := lib.Context()
-	listener, err := net.Listen("tcp", addr)
-
-	if err != nil {
-		return err
-	}
-
-	for {
-		select {
-		case <-closeCtx.Done():
-			return errors.New("shutdown")
-		default:
-			conn, err := listener.Accept()
-
-			if err != nil {
-				log.Error("Listen %v", err.Error())
-				continue
-			}
-
-			go handle(closeCtx, conn)
 		}
 	}
 }
