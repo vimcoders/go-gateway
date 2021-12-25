@@ -14,10 +14,10 @@ import (
 )
 
 func main() {
-	Run()
+	run()
 }
 
-func Run() (err error) {
+func run() (err error) {
 	now := time.Now()
 
 	defer func() {
@@ -33,7 +33,7 @@ func Run() (err error) {
 	var wg sync.WaitGroup
 
 	wg.Add(4)
-	go Monitor(&wg)
+	go monitor(&wg)
 	mongox.Init(&wg)
 	sqlx.Init(&wg)
 	session.Init(&wg)
@@ -45,7 +45,7 @@ func Run() (err error) {
 	return errors.New("shutdown!")
 }
 
-func Monitor(wg *sync.WaitGroup) (err error) {
+func monitor(wg *sync.WaitGroup) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			log.Error("Listen %v", e)
