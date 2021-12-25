@@ -1,8 +1,6 @@
 package mongox
 
 import (
-	"sync"
-
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -27,6 +25,5 @@ var Cli *mongo.Client
 //	Cli = mgoCli
 //}
 
-func Init(wg *sync.WaitGroup) {
-	defer wg.Done()
+func Init() {
 }

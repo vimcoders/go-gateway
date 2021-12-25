@@ -12,8 +12,8 @@ var (
 	closeCtx, closeFunc = context.WithCancel(context.Background())
 )
 
-func Context() (context.Context, context.CancelFunc) {
-	return closeCtx, closeFunc
+func Context() context.Context {
+	return closeCtx
 }
 
 func Timeout() time.Time {

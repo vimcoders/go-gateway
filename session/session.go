@@ -6,17 +6,16 @@ import (
 	"context"
 	"errors"
 	"net"
-	"sync"
 
 	"github.com/vimcoders/go-gateway/lib"
 	"github.com/vimcoders/go-gateway/log"
 )
 
-func Init(wg *sync.WaitGroup) {
-	go listen(wg)
+func Init() {
+	go listen()
 }
 
-func listen(wg *sync.WaitGroup) (err error) {
+func listen() (err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			log.Error("Listen %v", e)
@@ -25,12 +24,10 @@ func listen(wg *sync.WaitGroup) (err error) {
 		if err != nil {
 			log.Error("Listen %v", err)
 		}
-
-		wg.Done()
 	}()
 
 	addr := lib.Addr()
-	closeCtx, _ := lib.Context()
+	ctx := lib.Context()
 	listener, err := net.Listen("tcp", addr)
 
 	if err != nil {
@@ -39,7 +36,7 @@ func listen(wg *sync.WaitGroup) (err error) {
 
 	for {
 		select {
-		case <-closeCtx.Done():
+		case <-ctx.Done():
 			return errors.New("shutdown")
 		default:
 			conn, err := listener.Accept()
@@ -49,7 +46,7 @@ func listen(wg *sync.WaitGroup) (err error) {
 				continue
 			}
 
-			go handle(closeCtx, conn)
+			go handle(ctx, conn)
 		}
 	}
 }

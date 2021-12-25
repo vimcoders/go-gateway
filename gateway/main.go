@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/vimcoders/go-gateway/lib"
@@ -30,35 +29,19 @@ func run() (err error) {
 		}
 	}()
 
-	var wg sync.WaitGroup
-
-	wg.Add(4)
-	go monitor(&wg)
-	mongox.Init(&wg)
-	sqlx.Init(&wg)
-	session.Init(&wg)
+	mongox.Init()
+	sqlx.Init()
+	session.Init()
+	go http.ListenAndServe(":8080", nil)
 
 	log.Info("Run Cost %v", time.Now().Sub(now))
 
-	wg.Wait()
+	ctx := lib.Context()
 
-	return errors.New("shutdown!")
-}
-
-func monitor(wg *sync.WaitGroup) (err error) {
-	defer func() {
-		if e := recover(); e != nil {
-			log.Error("Listen %v", e)
+	for {
+		select {
+		case <-ctx.Done():
+			return errors.New("shutdown")
 		}
-
-		if err != nil {
-			log.Error("Listen %v", err)
-		}
-
-		wg.Done()
-	}()
-
-	addr := lib.MonitorAddr()
-
-	return http.ListenAndServe(addr, nil)
+	}
 }

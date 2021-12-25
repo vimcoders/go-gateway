@@ -1,8 +1,6 @@
 package sqlx
 
 import (
-	"sync"
-
 	"github.com/vimcoders/go-driver"
 )
 
@@ -18,6 +16,5 @@ var connector driver.Connector
 //	connector = c
 //}
 
-func Init(wg *sync.WaitGroup) {
-	defer wg.Done()
+func Init() {
 }
