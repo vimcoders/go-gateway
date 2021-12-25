@@ -19,6 +19,7 @@ func main() {
 	for {
 		select {
 		case <-ctx.Done():
+			log.Info("shutdown %v", lib.Duration())
 		}
 	}
 }
