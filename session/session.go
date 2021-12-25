@@ -11,7 +11,7 @@ import (
 	"github.com/vimcoders/go-gateway/log"
 )
 
-func Init() {
+func init() {
 	go listen()
 }
 

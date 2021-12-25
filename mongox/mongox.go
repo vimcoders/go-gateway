@@ -25,5 +25,5 @@ var Cli *mongo.Client
 //	Cli = mgoCli
 //}
 
-func Init() {
+func init() {
 }

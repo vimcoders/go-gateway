@@ -16,5 +16,5 @@ var connector driver.Connector
 //	connector = c
 //}
 
-func Init() {
+func init() {
 }

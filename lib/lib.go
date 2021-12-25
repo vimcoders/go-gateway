@@ -2,15 +2,21 @@ package lib
 
 import (
 	"context"
+	"net/http"
 	"time"
 )
 
 var (
 	addr                = ":8888"
-	monitorAddr         = ":8080"
+	awake               = time.Now()
 	timeout             = time.Second * 15
+	monitorAddr         = ":8080"
 	closeCtx, closeFunc = context.WithCancel(context.Background())
 )
+
+func init() {
+	go http.ListenAndServe(":8080", nil)
+}
 
 func Context() context.Context {
 	return closeCtx
@@ -24,6 +30,10 @@ func Addr() string {
 	return addr
 }
 
-func MonitorAddr() string {
-	return monitorAddr
+func Duration() time.Duration {
+	return time.Now().Sub(awake)
+}
+
+func Shutdown() {
+	closeFunc()
 }
