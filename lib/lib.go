@@ -8,7 +8,7 @@ import (
 
 var (
 	addr                = ":8888"
-	awake               = time.Now()
+	unix                = time.Now().Unix()
 	timeout             = time.Second * 15
 	monitorAddr         = ":8080"
 	closeCtx, closeFunc = context.WithCancel(context.Background())
@@ -30,8 +30,8 @@ func Addr() string {
 	return addr
 }
 
-func Duration() time.Duration {
-	return time.Now().Sub(awake)
+func Seconds() int64 {
+	return time.Now().Unix() - unix
 }
 
 func Shutdown() {

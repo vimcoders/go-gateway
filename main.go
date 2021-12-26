@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/vimcoders/go-gateway/lib"
 	"github.com/vimcoders/go-gateway/log"
+	"github.com/vimcoders/go-gateway/sqlx"
 
 	_ "github.com/vimcoders/go-gateway/mongox"
 	_ "github.com/vimcoders/go-gateway/session"
@@ -10,7 +11,7 @@ import (
 )
 
 func init() {
-	log.Info("init cost %v", lib.Duration())
+	log.Info("init cost %vs", lib.Seconds())
 }
 
 func main() {
@@ -19,7 +20,9 @@ func main() {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Info("shutdown %v", lib.Duration())
+			sqlx.Close()
+			log.Info("shutdown %vs", lib.Seconds())
+			return
 		}
 	}
 }

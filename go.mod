@@ -5,6 +5,7 @@ go 1.17
 require github.com/vimcoders/go-driver v0.0.0-20211205103709-a1a8768f5105
 
 require (
+	github.com/go-sql-driver/mysql v1.6.0 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
