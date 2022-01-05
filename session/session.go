@@ -8,7 +8,7 @@ import (
 	"net"
 
 	"github.com/vimcoders/go-gateway/lib"
-	"github.com/vimcoders/go-gateway/log"
+	"github.com/vimcoders/go-gateway/logx"
 )
 
 func init() {
@@ -18,11 +18,11 @@ func init() {
 func listen() (err error) {
 	defer func() {
 		if e := recover(); e != nil {
-			log.Error("Listen %v", e)
+			logx.Error("Listen %v", e)
 		}
 
 		if err != nil {
-			log.Error("Listen %v", err)
+			logx.Error("Listen %v", err)
 		}
 	}()
 
@@ -42,7 +42,7 @@ func listen() (err error) {
 			conn, err := listener.Accept()
 
 			if err != nil {
-				log.Error("Listen %v", err.Error())
+				logx.Error("Listen %v", err.Error())
 				continue
 			}
 
@@ -70,7 +70,7 @@ func (s *Session) Delete(key interface{}) error {
 }
 
 func (s *Session) OnMessage(p []byte) error {
-	log.Info("OnMessage %v..", string(p))
+	logx.Info("OnMessage %v..", string(p))
 
 	if _, err := s.Write([]byte("hello client !")); err != nil {
 		return err
@@ -109,11 +109,11 @@ func (s *Session) Write(b []byte) (n int, err error) {
 func handle(ctx context.Context, c net.Conn) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
-			log.Error("Handle recover %v", e)
+			logx.Error("Handle recover %v", e)
 		}
 
 		if err != nil {
-			log.Error("Handle %v", err)
+			logx.Error("Handle %v", err)
 		}
 	}()
 

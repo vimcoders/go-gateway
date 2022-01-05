@@ -1,6 +1,7 @@
 package mongox
 
 import (
+	"github.com/vimcoders/go-gateway/logx"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -26,4 +27,5 @@ var Cli *mongo.Client
 //}
 
 func init() {
+	logx.Info("init mongox ...")
 }
