@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net"
 
+	"github.com/vimcoders/go-gateway/ctx"
 	"github.com/vimcoders/go-gateway/lib"
 	"github.com/vimcoders/go-gateway/logx"
 )
@@ -27,7 +28,7 @@ func listen() (err error) {
 	}()
 
 	addr := lib.Addr()
-	ctx := lib.Context()
+	closeCtx := ctx.Close()
 	listener, err := net.Listen("tcp", addr)
 
 	if err != nil {
@@ -36,7 +37,7 @@ func listen() (err error) {
 
 	for {
 		select {
-		case <-ctx.Done():
+		case <-closeCtx.Done():
 			return errors.New("shutdown")
 		default:
 			conn, err := listener.Accept()
@@ -46,7 +47,7 @@ func listen() (err error) {
 				continue
 			}
 
-			go handle(ctx, conn)
+			go handle(closeCtx, conn)
 		}
 	}
 }

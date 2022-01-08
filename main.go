@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/vimcoders/go-gateway/ctx"
 	"github.com/vimcoders/go-gateway/lib"
 	"github.com/vimcoders/go-gateway/logx"
 	"github.com/vimcoders/go-gateway/sqlx"
@@ -14,11 +15,11 @@ func init() {
 }
 
 func main() {
-	ctx := lib.Context()
+	closeCtx := ctx.Close()
 
 	for {
 		select {
-		case <-ctx.Done():
+		case <-closeCtx.Done():
 			sqlx.Close()
 			logx.Info("shutdown %vs", lib.Seconds())
 			return
