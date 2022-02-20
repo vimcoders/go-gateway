@@ -6,10 +6,9 @@ import (
 )
 
 var (
-	addr        = ":8888"
-	unix        = time.Now().Unix()
-	timeout     = time.Second * 15
-	monitorAddr = ":8080"
+	addr    = ":8888"
+	unix    = time.Now().Unix()
+	timeout = time.Second * 15
 )
 
 func init() {

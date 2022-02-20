@@ -1,27 +1,32 @@
 package main
 
 import (
-	"github.com/vimcoders/go-gateway/ctx"
-	"github.com/vimcoders/go-gateway/lib"
+	"context"
+	"net/http"
+
 	"github.com/vimcoders/go-gateway/logx"
+	"github.com/vimcoders/go-gateway/session"
 	"github.com/vimcoders/go-gateway/sqlx"
 
 	_ "github.com/vimcoders/go-gateway/mongox"
 	_ "github.com/vimcoders/go-gateway/session"
 )
 
+var (
+	CloseCtx, CloseFunc = context.WithCancel(context.Background())
+)
+
 func init() {
-	logx.Info("init cost %vs", lib.Seconds())
+	go http.ListenAndServe(":8080", nil)
 }
 
 func main() {
-	closeCtx := ctx.Close()
-
 	for {
 		select {
-		case <-closeCtx.Done():
+		case <-CloseCtx.Done():
 			sqlx.Close()
-			logx.Info("shutdown %vs", lib.Seconds())
+			session.CloseFunc()
+			logx.Info("shutdown")
 			return
 		}
 	}
