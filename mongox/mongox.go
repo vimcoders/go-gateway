@@ -2,10 +2,7 @@ package mongox
 
 import (
 	"github.com/vimcoders/go-gateway/logx"
-	"go.mongodb.org/mongo-driver/mongo"
 )
-
-var Cli *mongo.Client
 
 //func init() {
 //	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017")

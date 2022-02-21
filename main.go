@@ -7,9 +7,6 @@ import (
 	"github.com/vimcoders/go-gateway/logx"
 	"github.com/vimcoders/go-gateway/session"
 	"github.com/vimcoders/go-gateway/sqlx"
-
-	_ "github.com/vimcoders/go-gateway/mongox"
-	_ "github.com/vimcoders/go-gateway/session"
 )
 
 var (
