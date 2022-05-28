@@ -1,0 +1,12 @@
+syntax = "proto3";  //指定版本，必须要写（proto3、proto2）
+option go_package = "./;pb";
+
+message Request {
+	int32 cmd = 1;
+	string body = 2;
+}
+
+message Response {
+	int32 cmd = 1;
+	string body = 2;
+}

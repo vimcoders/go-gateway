@@ -1,173 +1,66 @@
 package session
 
 import (
-	"bufio"
-	"bytes"
-	"context"
 	"errors"
-	"net"
-	"time"
+	"fmt"
 
-	"github.com/vimcoders/go-gateway/lib"
-	"github.com/vimcoders/go-gateway/logx"
+	"github.com/vimcoders/go-driver"
+	"google.golang.org/protobuf/proto"
 )
-
-var (
-	addr                = ":8888"
-	timeout             = time.Second * 15
-	CloseCtx, CloseFunc = context.WithCancel(context.Background())
-)
-
-func init() {
-	go listen()
-}
-
-func listen() (err error) {
-	defer func() {
-		if e := recover(); e != nil {
-			logx.Error("Listen %v", e)
-		}
-
-		if err != nil {
-			logx.Error("Listen %v", err)
-		}
-	}()
-
-	listener, err := net.Listen("tcp", addr)
-
-	if err != nil {
-		return err
-	}
-
-	for {
-		select {
-		case <-CloseCtx.Done():
-			return errors.New("shutdown")
-		default:
-			conn, err := listener.Accept()
-
-			if err != nil {
-				logx.Error("Listen %v", err.Error())
-				continue
-			}
-
-			go handle(conn)
-		}
-	}
-}
 
 type Session struct {
-	net.Conn
-	*bytes.Buffer
-	*bufio.Reader
+	Id int64
+	*driver.Conn
+	d map[interface{}]interface{}
 }
 
 func (s *Session) Set(key, value interface{}) error {
+	s.d[key] = value
 	return nil
 }
 
 func (s *Session) Get(key interface{}) interface{} {
+	if v, ok := s.d[key]; ok {
+		return v
+	}
 	return nil
 }
 
 func (s *Session) Delete(key interface{}) error {
+	delete(s.d, key)
 	return nil
 }
 
-func (s *Session) OnMessage(p []byte) error {
-	logx.Info("OnMessage %v..", string(p))
-
-	if _, err := s.Write([]byte("hello client !")); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (s *Session) Write(b []byte) (n int, err error) {
-	defer s.Buffer.Reset()
-
-	length := len(b)
-
-	var header [2]byte
-
-	header[0] = uint8(length >> 8)
-	header[1] = uint8(length)
-
-	if _, err := s.Buffer.Write(header[:]); err != nil {
-		return 0, err
-	}
-
-	if _, err := s.Buffer.Write(b); err != nil {
-		return 0, err
-	}
-
-	timeout := lib.Timeout()
-
-	if err = s.Conn.SetWriteDeadline(timeout); err != nil {
-		return 0, err
-	}
-
-	return s.Conn.Write(s.Buffer.Bytes())
-}
-
-func handle(c net.Conn) (err error) {
+func (s *Session) Push() (err error) {
 	defer func() {
 		if e := recover(); e != nil {
-			logx.Error("Handle recover %v", e)
-		}
-
-		if err != nil {
-			logx.Error("Handle %v", err)
+			err = errors.New(fmt.Sprintf("%v", e))
 		}
 	}()
-
-	s := Session{
-		Conn:   c,
-		Reader: bufio.NewReader(c),
-		Buffer: bytes.NewBuffer(make([]byte, 512)),
-	}
-
 	defer s.Close()
+	return s.Conn.Push()
+}
 
-	header := make([]byte, 2)
-	timeout := Timeout()
-
-	for {
-		if err := s.Conn.SetReadDeadline(timeout); err != nil {
-			return err
+func (s *Session) Pull() (err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			err = errors.New(fmt.Sprintf("%v", e))
 		}
+	}()
+	defer s.Close()
+	return s.Conn.Pull()
+}
 
-		if _, err := s.Reader.Read(header); err != nil {
-			return err
+func (s *Session) Send(m proto.Message) (err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			err = errors.New(fmt.Sprintf("%v", e))
 		}
-
-		length := uint16(uint16(header[0])<<8 | uint16(header[1]))
-
-		if err := s.Conn.SetReadDeadline(timeout); err != nil {
-			return err
-		}
-
-		b, err := s.Reader.Peek(int(length))
-
-		if err != nil {
-			return err
-		}
-
-		if err := s.OnMessage(b); err != nil {
-			return err
-		}
-
-		if _, err := s.Discard(len(b)); err != nil {
-			return err
-		}
+	}()
+	b, err := proto.Marshal(m)
+	if err != nil {
+		return err
 	}
-}
-
-func Timeout() time.Time {
-	return time.Now().Add(timeout)
-}
-
-func Addr() string {
-	return addr
+	s.C <- b
+	return nil
 }
